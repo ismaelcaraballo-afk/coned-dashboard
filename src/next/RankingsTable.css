@@ -1,0 +1,59 @@
+/* Rankings table shell — workbench treatment.
+   Tokens inherited from .sc-scope (see ScoreCell.css). */
+
+.rankings-bench {
+  background: var(--sc-canvas-raised);
+  padding: 28px;
+  overflow-x: auto;
+}
+
+.rankings-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 720px;
+}
+
+.rankings-table th {
+  font-family: var(--sc-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sc-bench-muted);
+  text-align: left;
+  padding: 0 14px 10px;
+  border-bottom: 1px solid var(--sc-bench-line);
+}
+.rankings-table th.num { text-align: right; }
+
+.rankings-table td {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--sc-bench-line);
+  vertical-align: middle;
+}
+.rankings-table td.addr {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13.5px;
+  color: var(--sc-bench-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.rankings-table td.cluster {
+  font-family: var(--sc-mono);
+  font-size: 11px;
+  color: var(--sc-bench-muted);
+  white-space: nowrap;
+}
+.rankings-table td.num {
+  font-family: var(--sc-mono);
+  font-size: 13px;
+  color: var(--sc-bench-text);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rankings-table td .sc-cell {
+  border: none;
+  background: transparent;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}

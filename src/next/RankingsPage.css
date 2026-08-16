@@ -1,0 +1,76 @@
+.rankings-page {
+  min-height: 100dvh;
+  background: var(--sc-canvas);
+  color: var(--sc-bench-text);
+  padding: 40px 32px 80px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.rankings-header {
+  max-width: 1040px;
+  margin: 0 auto 32px;
+  border-bottom: 1px solid var(--sc-bench-line);
+  padding-bottom: 24px;
+}
+
+.rankings-meta {
+  font-family: var(--sc-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sc-bench-muted);
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.rankings-page h1 {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0 0 12px;
+}
+
+.rankings-lede {
+  color: var(--sc-bench-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 62ch;
+  margin: 0;
+}
+.rankings-lede code {
+  font-family: var(--sc-mono);
+  font-size: 12px;
+  color: var(--sc-bench-text);
+  background: var(--sc-canvas-raised);
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid var(--sc-bench-line);
+}
+
+.rankings-page > .rankings-bench {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.rankings-empty {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 40px 28px;
+  background: var(--sc-canvas-raised);
+  border: 1px dashed var(--sc-bench-line);
+  color: var(--sc-bench-muted);
+  font-size: 14px;
+  text-align: center;
+}
+.rankings-empty a {
+  color: var(--sc-bench-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.rankings-empty--error {
+  color: var(--sc-high);
+  border-color: var(--sc-high);
+}
