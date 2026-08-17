@@ -40,7 +40,7 @@ export default function ScoreCell({
   const isEst = percentile === "est.";
 
   return (
-    <div className={`sc-cell ${tickClass[tier] ? "" : ""}`}>
+    <div className="sc-cell">
       <span className={`sc-tick ${tickClass[tier]}`} />
       <div className="sc-body">
         <div className="sc-r1">
