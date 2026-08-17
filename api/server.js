@@ -700,7 +700,7 @@ function sanitizeNote(raw) {
   if (typeof raw !== "string") return "";
   return raw
     .normalize("NFC")
-    .replace(/[\x00-\x08\x0b-\x0d\x0e-\x1f\x7f\x85\xad؜​-‏  ‪-‮⁠-⁩﻿]/g, "");
+    .replace(/[\x00-\x08\x0b-\x0d\x0e-\x1f\x7f\x85\xad\u061C\u200B-\u200F\u2028\u2029\u202A-\u202E\u2060-\u2069\uFEFF]/g, "");
 }
 
 // Bulk current status — registered before :bbl route to avoid param shadowing
