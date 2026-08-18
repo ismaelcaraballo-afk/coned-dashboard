@@ -120,9 +120,17 @@ async function fetchStatusRowsSince(sinceIso) {
   // Lazy-import pg so environments without it (or without DATABASE_URL) can still
   // run this script without a hard failure at load time.
   const { default: pg } = await import("pg");
+  // Mirror db.js SSL policy: localhost → no TLS; DATABASE_CA_CERT set → full
+  // verification; otherwise fall back to encrypted-but-unverified (Railway
+  // default until the CA cert is provisioned).
+  const ssl = process.env.DATABASE_URL?.includes("localhost")
+    ? false
+    : process.env.DATABASE_CA_CERT
+      ? { rejectUnauthorized: true, ca: Buffer.from(process.env.DATABASE_CA_CERT, "base64").toString() }
+      : { rejectUnauthorized: false };
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL?.includes("localhost") ? false : { rejectUnauthorized: false },
+    ssl,
     max: 2,
     connectionTimeoutMillis: 5_000,
   });
@@ -159,6 +167,12 @@ async function main() {
     console.log("[merge-status] no prev_run_date — first run, skipping STATUS merge");
     return;
   }
+  // Guard: a malformed prev_run_date passes the !since check but blows up in
+  // Postgres with a cryptic type error. Require ISO date prefix at minimum.
+  if (!/^\d{4}-\d{2}-\d{2}/.test(since)) {
+    console.log(`[merge-status] prev_run_date "${since}" is not ISO-shaped — skipping`);
+    return;
+  }
 
   let rows;
   try {
@@ -182,12 +196,26 @@ async function main() {
   const statusEvents = buildStatusEvents(rows, bblToAddress);
   if (!statusEvents.length) return;
 
+  // Dedup across pipeline re-runs: if a prior run already merged a STATUS
+  // event for this BBL, don't prepend a second copy. Compares by BBL, since
+  // buildStatusEvents already collapses to one event per BBL per run.
+  const existingStatusBbls = new Set(
+    (payload.events ?? [])
+      .filter((e) => e?.kind === "STATUS" && e?.bbl)
+      .map((e) => String(e.bbl))
+  );
+  const fresh = statusEvents.filter((e) => !e.bbl || !existingStatusBbls.has(String(e.bbl)));
+  if (!fresh.length) {
+    console.log("[merge-status] all STATUS events already present in feed — nothing to merge");
+    return;
+  }
+
   // STATUS events go first — they're the primary weekly signal.
-  payload.events = [...statusEvents, ...(payload.events ?? [])];
+  payload.events = [...fresh, ...(payload.events ?? [])];
   await writeJSONAtomic(EVENTS_JSON, payload);
 
-  console.log(`[merge-status] merged ${statusEvents.length} STATUS event(s) into ${EVENTS_JSON}`);
-  for (const e of statusEvents) {
+  console.log(`[merge-status] merged ${fresh.length} STATUS event(s) into ${EVENTS_JSON}`);
+  for (const e of fresh) {
     console.log(`  [STATUS    ] ${e.subject} — ${e.verb}`);
   }
 }

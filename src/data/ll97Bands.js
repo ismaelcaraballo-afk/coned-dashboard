@@ -23,6 +23,7 @@ export function bandOf(penalty) {
 
 export function bandCounts(rows) {
   const counts = Object.fromEntries(LL97_BANDS.map((b) => [b.key, 0]));
+  if (!rows?.length) return counts;
   for (const b of rows) {
     counts[bandOf(b.ll97_penalty_2030).key] += 1;
   }

@@ -175,7 +175,7 @@ function renderHtml({ subject, runAnchor, finding, top, changedItems, pulse, met
     `<div style="padding:8px 0;border-bottom:1px solid #F0F0EB;"><div style="font-size:13px;">${escape(c.line)}</div></div>`
   ).join("");
 
-  const pulseLine = `High <b>${pulse.high}</b> · Med <b>${pulse.medium}</b> · Low <b>${pulse.low}</b> · Uncertain <b>${pulse.uncertain}</b><br>Critical <b>${pulse.critical}</b> · portfolio <b>${pulse.total}</b>`;
+  const pulseLine = `High <b>${escape(String(pulse.high))}</b> · Med <b>${escape(String(pulse.medium))}</b> · Low <b>${escape(String(pulse.low))}</b> · Uncertain <b>${escape(String(pulse.uncertain))}</b><br>Critical <b>${escape(String(pulse.critical))}</b> · portfolio <b>${escape(String(pulse.total))}</b>`;
 
   return `<div style="font-family:Arial,Helvetica,sans-serif;color:#1A1B1E;max-width:640px;margin:0 auto;padding:26px 22px 30px;background:#FFFFFF;">
   <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:1px;color:#75787E;text-transform:uppercase;margin-bottom:14px;">${escape(kicker)}</div>
@@ -230,5 +230,6 @@ function escape(s) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
 }
