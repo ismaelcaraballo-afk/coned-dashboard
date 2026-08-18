@@ -168,9 +168,11 @@ async function main() {
     return;
   }
   // Guard: a malformed prev_run_date passes the !since check but blows up in
-  // Postgres with a cryptic type error. Require ISO date prefix at minimum.
-  if (!/^\d{4}-\d{2}-\d{2}/.test(since)) {
-    console.log(`[merge-status] prev_run_date "${since}" is not ISO-shaped — skipping`);
+  // Postgres with a cryptic type error. Reject anything Date.parse can't
+  // interpret — catches impossible values like "2026-99-99" that a naive
+  // regex would let through.
+  if (isNaN(Date.parse(since))) {
+    console.log(`[merge-status] prev_run_date "${since}" is not a valid date — skipping`);
     return;
   }
 
@@ -204,7 +206,10 @@ async function main() {
       .filter((e) => e?.kind === "STATUS" && e?.bbl)
       .map((e) => String(e.bbl))
   );
-  const fresh = statusEvents.filter((e) => !e.bbl || !existingStatusBbls.has(String(e.bbl)));
+  // Only keep events that have a BBL AND aren't already in the feed. Events
+  // with a null/empty BBL are dropped from dedup consideration entirely —
+  // previously they slipped past the guard and got inserted unconditionally.
+  const fresh = statusEvents.filter((e) => e.bbl && !existingStatusBbls.has(String(e.bbl)));
   if (!fresh.length) {
     console.log("[merge-status] all STATUS events already present in feed — nothing to merge");
     return;
