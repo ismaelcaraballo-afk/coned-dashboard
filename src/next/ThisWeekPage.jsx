@@ -9,9 +9,6 @@ import ErrorBoundary from "./ErrorBoundary.jsx";
 import LoginForm from "./LoginForm.jsx";
 import "./ThisWeekPage.css";
 
-const SURFACE_LEDE =
-  "This Week is the weekly triage surface for the ConEd steam attrition workflow. Sign in to see since-last-run events, your Critical queue, and portfolio pulse.";
-
 // ── Portfolio pulse aggregation ───────────────────────────────────────────
 
 function computePulse(buildings) {
@@ -149,7 +146,7 @@ export default function ThisWeekPage() {
       )}
 
       {!token && (
-        <LoginForm onLogin={setToken} surfaceLede={SURFACE_LEDE} />
+        <LoginForm onLogin={setToken} />
       )}
 
       {token && (
