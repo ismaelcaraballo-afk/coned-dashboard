@@ -8,6 +8,7 @@ import { isCritical } from "./criticalFilter.js";
  */
 export function useStatusCounts(buildings, token) {
   const [counts, setCounts]   = useState(null);
+  const [ageByBbl, setAgeByBbl] = useState({});
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState(null);
 
@@ -52,13 +53,17 @@ export function useStatusCounts(buildings, token) {
       .then((statusMap) => {
         if (cancelled) return;
         let contacted = 0, dismissed = 0;
-        for (const { status } of Object.values(statusMap)) {
+        const ages = {};
+        for (const [bbl, row] of Object.entries(statusMap)) {
+          const { status, first_event_at } = row;
           if (status === "Contacted" || status === "In review" || status === "Confirmed at-risk") contacted++;
           else if (status === "Dismissed" || status === "False positive") dismissed++;
+          if (first_event_at) ages[bbl] = first_event_at;
         }
         const total    = criticalBbls.length;
         const toReview = Math.max(0, total - contacted - dismissed);
         setCounts({ contacted, dismissed, toReview, total });
+        setAgeByBbl(ages);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message ?? "Failed to load status counts");
@@ -70,5 +75,5 @@ export function useStatusCounts(buildings, token) {
     return () => { cancelled = true; };
   }, [buildings, token]);
 
-  return { counts, loading, error };
+  return { counts, ageByBbl, loading, error };
 }

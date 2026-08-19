@@ -260,6 +260,88 @@ function buildIdentity(building) {
   return { address: building.address, meta, cluster, right };
 }
 
+// ── narrative slot (H5) ──────────────────────────────────────────────────────
+// Deterministic composition — every underlined value traces to a ledger claim
+// or driver row above. No LLM, no free prose. Editable slot lands with M6+.
+function Cited({ children }) {
+  return <span className="cf-cited">{children}</span>;
+}
+
+function fmtRunDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
+  });
+}
+
+function buildNarrative(building, modelMeta, pctMap) {
+  if (!building) return null;
+
+  const entry = pctMap?.pctByAddr?.get(building.address);
+  const finalTier = building.diagnostic_risk ?? "Uncertain";
+  const ml = building.ml_risk;
+  const base = Number.isFinite(ml)
+    ? ml < BASE_LOW_MAX ? "Low" : ml >= BASE_HIGH_MIN ? "High" : "Medium"
+    : null;
+  const diverged = base === "Low" && finalTier === "High";
+
+  // Sentence 1 — portfolio position
+  const positionSentence = entry
+    ? <>Ranks <Cited>{ordinal(entry.pct)}</Cited> of <Cited>{pctMap.total.toLocaleString()}</Cited> in the current XGB-scored portfolio (#<Cited>{entry.rank}</Cited>).</>
+    : <>No XGB score on file; ranked by legacy heuristic only.</>;
+
+  // Sentence 2 — tier reasoning, mirrors the ledger's tier column
+  let tierSentence;
+  if (finalTier === "Uncertain") {
+    tierSentence = <>Coverage is insufficient to place it on the delta scale, so the tier reads <Cited>Uncertain</Cited>.</>;
+  } else if (diverged) {
+    tierSentence = <>Base <Cited>Low</Cited> was promoted to <Cited>{finalTier}</Cited> by an LL97 penalty of <Cited>{fmtMoney(building.ll97_penalty_2030)}</Cited>/yr at 2030 caps.</>;
+  } else {
+    const d24 = building.norm_delta_23_24;
+    const d23 = building.norm_delta_22_23;
+    if (Number.isFinite(d24)) {
+      const sign = d24 < 0 ? "−" : "+";
+      const pct = Math.abs(Math.round(d24));
+      tierSentence = <>Its weather-normalized steam load moved <Cited>{sign}{pct}%</Cited> in 2024, placing it in the <Cited>{finalTier}</Cited> tier.</>;
+    } else if (Number.isFinite(d23)) {
+      const sign = d23 < 0 ? "−" : "+";
+      const pct = Math.abs(Math.round(d23));
+      tierSentence = <>Its weather-normalized steam load moved <Cited>{sign}{pct}%</Cited> in 2023 (no 2024 Δ on file yet); tier reads <Cited>{finalTier}</Cited>.</>;
+    } else {
+      tierSentence = <>No adjacent-year Δ on file; tier <Cited>{finalTier}</Cited> reflects portfolio ML rank only.</>;
+    }
+  }
+
+  // Sentence 3 — top driver
+  let driverSentence = null;
+  const drivers = Array.isArray(building.ml_drivers) ? building.ml_drivers : [];
+  if (drivers.length > 0) {
+    const top = drivers[0];
+    const { name } = labelDriver(top.feature, top.value);
+    const dir = top.contribution > 0 ? "up" : "down";
+    driverSentence = <>Top SHAP driver is <Cited>{name}</Cited>, pushing the score <Cited>{dir}</Cited>.</>;
+  }
+
+  // Sentence 4 — method + provenance anchor
+  const version = modelMeta?.model_version ?? "XGB v1 · UNVAL";
+  const methodSentence = <>Chain per §4.1: <Cited>{version}</Cited> base + LL97/trend modifiers; full provenance in the ledger above.</>;
+
+  return {
+    source: "Deterministic composition",
+    drafted: fmtRunDate(modelMeta?.run_date),
+    status: "Draft",
+    body: (
+      <>
+        {positionSentence} {tierSentence}
+        {driverSentence && <> {driverSentence}</>}
+        {" "}{methodSentence}
+      </>
+    ),
+  };
+}
+
 // ── entrypoint ───────────────────────────────────────────────────────────────
 const STATUSES = new Set([
   "Unreviewed", "In review", "Contacted", "Confirmed at-risk", "False positive", "Dismissed",
@@ -277,7 +359,7 @@ export function buildCaseFileProps({ building, modelMeta, currentStatus, pctMap 
       coverage: buildCoverageColumn(building),
     },
     drivers: buildDrivers(building.ml_drivers),
-    narrative: null,
+    narrative: buildNarrative(building, modelMeta, pctMap),
     status,
   };
 }

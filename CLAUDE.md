@@ -50,6 +50,28 @@ npm run test:watch       # watch mode
 
 Node 20 required (see `.node-version`).
 
+### Local Postgres (M6 status events + W5 carry-over ages)
+
+Postgres is optional in dev per D12 — the API logs a warning and continues if the DB is unreachable, but the Age column on `/this-week` and status-endpoint counts will be empty. Stand up a local instance to see the full W5 story.
+
+```bash
+# Start Postgres (postgres:16-alpine, port 5432, named volume for persistence)
+docker compose up -d
+
+# Ensure .env has DATABASE_URL + ACTOR_HMAC_SECRET (see .env.example)
+# Then restart the API so it picks them up
+npm run dev
+
+# Seed a handful of status events against real Critical BBLs
+# (21d/14d/7d/3d ages, actor="seed-script", idempotent)
+node --env-file-if-exists=.env scripts/seed-status-events.js
+
+# Wipe and rebuild
+docker compose down -v && docker compose up -d
+```
+
+Dev scripts use `node --env-file-if-exists=.env` so `DATABASE_URL` is loaded before any imports run — necessary because ES-module import hoisting would otherwise run `db.js`'s `pg.Pool` constructor before `dotenv.config()`. `db.js` skips SSL for `localhost` connection strings; managed Postgres (Railway) still gets full TLS via `DATABASE_CA_CERT`.
+
 ---
 
 ## Repo layout

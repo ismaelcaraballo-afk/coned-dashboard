@@ -10,14 +10,18 @@ if (!process.env.DATABASE_URL && process.env.NODE_ENV === "production") {
 const _rawPoolMax = parseInt(process.env.DB_POOL_MAX ?? "5", 10);
 const _poolMax = Number.isFinite(_rawPoolMax) && _rawPoolMax > 0 ? _rawPoolMax : 5;
 
+const _connString = process.env.DATABASE_URL ?? "postgresql://localhost:5432/coned_dashboard";
+// Local Postgres (docker-compose, Homebrew) does not run SSL — skip it for localhost URLs.
+const _isLocalDb = /@(localhost|127\.0\.0\.1)[:/]/.test(_connString) || !/@/.test(_connString);
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL ?? "postgresql://localhost:5432/coned_dashboard",
+  connectionString: _connString,
   // Set DATABASE_CA_CERT env var (base64-encoded Railway CA bundle) to enable full TLS verification.
-  ssl: process.env.DATABASE_URL
-    ? process.env.DATABASE_CA_CERT
+  ssl: _isLocalDb
+    ? false
+    : process.env.DATABASE_CA_CERT
       ? { rejectUnauthorized: true, ca: Buffer.from(process.env.DATABASE_CA_CERT, "base64").toString() }
-      : { rejectUnauthorized: false }
-    : false,
+      : { rejectUnauthorized: false },
   // Tune via DB_POOL_MAX env var; default 5 works for single-dyno Railway deployments
   max: _poolMax,
   idleTimeoutMillis: 30_000,
@@ -151,11 +155,12 @@ export async function appendStatus(bbl, status, note, actor) {
   return rows[0];
 }
 
-// Bulk: latest status per BBL — LATERAL forces per-BBL index scan instead of DISTINCT ON seqscan
+// Bulk: latest status per BBL — LATERAL forces per-BBL index scan instead of DISTINCT ON seqscan.
+// Also returns first_event_at (earliest touch) so the queue can render W5 carry-over ages.
 export async function getBulkCurrentStatus(bbls) {
   if (!bbls.length) return {};
   const { rows } = await pool.query(
-    `SELECT b.bbl, e.status, e.actor, e.created_at
+    `SELECT b.bbl, e.status, e.actor, e.created_at, f.first_event_at
      FROM unnest($1::text[]) AS b(bbl)
      CROSS JOIN LATERAL (
        SELECT status, actor, created_at
@@ -163,7 +168,12 @@ export async function getBulkCurrentStatus(bbls) {
        WHERE bbl = b.bbl
        ORDER BY created_at DESC, id DESC
        LIMIT 1
-     ) e`,
+     ) e
+     CROSS JOIN LATERAL (
+       SELECT MIN(created_at) AS first_event_at
+       FROM building_status_events
+       WHERE bbl = b.bbl
+     ) f`,
     [bbls]
   );
   return Object.fromEntries(rows.map((r) => [r.bbl, r]));

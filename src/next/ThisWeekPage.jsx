@@ -83,7 +83,7 @@ export default function ThisWeekPage() {
 
   const { buildings, loading: bldgLoading, error: bldgError } = useBuildings(token);
   const { events: eventsData, loading: evtLoading }            = useEvents(token);
-  const { counts: statusCounts }                               = useStatusCounts(buildings, token);
+  const { counts: statusCounts, ageByBbl }                     = useStatusCounts(buildings, token);
 
   // Expired session → clear token, re-render into LoginForm in place.
   useEffect(() => {
@@ -167,9 +167,15 @@ export default function ThisWeekPage() {
 
             {evtLoading && <div className="tw-placeholder">Loading events…</div>}
 
-            {!evtLoading && (firstRun || feedEvents.length === 0) && (
+            {!evtLoading && firstRun && (
               <div className="tw-placeholder">
                 Event feed begins with the first diffed pipeline run. Nothing to show yet.
+              </div>
+            )}
+
+            {!evtLoading && !firstRun && feedEvents.length === 0 && (
+              <div className="tw-placeholder">
+                Nothing crossed a threshold since your last run.
               </div>
             )}
 
@@ -199,7 +205,7 @@ export default function ThisWeekPage() {
             )}
             {!bldgLoading && !bldgError && (
               <ErrorBoundary label="CriticalQueue" fallback={<div className="tw-placeholder tw-placeholder--err">Queue failed to render.</div>}>
-                <CriticalQueue buildings={buildings} hasM6={true} statusCounts={statusCounts} runDate={runDate} />
+                <CriticalQueue buildings={buildings} hasM6={true} statusCounts={statusCounts} ageByBbl={ageByBbl} runDate={runDate} />
               </ErrorBoundary>
             )}
           </section>

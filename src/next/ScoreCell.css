@@ -14,6 +14,8 @@
   --sc-crit: #C22B1F;
   --sc-crit-text: #E8574A;
   --sc-uncertain: #7A828D;
+  --sc-accent: #E87722;
+  --sc-accent-ink: #14100B;
   --sc-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Motion tokens — one easing, two durations, everywhere. */

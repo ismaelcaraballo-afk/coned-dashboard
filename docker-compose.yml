@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: coned-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: coned
+      POSTGRES_PASSWORD: coned
+      POSTGRES_DB: coned_dashboard
+    ports:
+      - "5432:5432"
+    volumes:
+      - coned_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coned -d coned_dashboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  coned_pgdata:

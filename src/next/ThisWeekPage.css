@@ -281,8 +281,8 @@
   display: inline-flex;
   align-items: center;
   padding: 10px 18px;
-  background: var(--sc-accent, #ea580c);
-  color: #fff;
+  background: var(--sc-accent, #E87722);
+  color: var(--sc-accent-ink, #14100B);
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -291,8 +291,8 @@
   border: 1px solid transparent;
   transition: background var(--sc-motion-fast) var(--sc-motion-easing);
 }
-.tw-compose-btn:hover  { background: color-mix(in srgb, var(--sc-accent, #ea580c) 88%, #000); }
-.tw-compose-btn:focus  { outline: 2px solid var(--sc-accent, #ea580c); outline-offset: 2px; }
+.tw-compose-btn:hover  { background: color-mix(in srgb, var(--sc-accent, #E87722) 88%, #000); }
+.tw-compose-btn:focus  { outline: 2px solid var(--sc-accent, #E87722); outline-offset: 2px; }
 
 .tw-cmdk-hint {
   align-self: center;
