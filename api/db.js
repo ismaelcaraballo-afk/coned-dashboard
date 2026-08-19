@@ -10,14 +10,25 @@ if (!process.env.DATABASE_URL && process.env.NODE_ENV === "production") {
 const _rawPoolMax = parseInt(process.env.DB_POOL_MAX ?? "5", 10);
 const _poolMax = Number.isFinite(_rawPoolMax) && _rawPoolMax > 0 ? _rawPoolMax : 5;
 
+const _connStr = process.env.DATABASE_URL ?? "postgresql://localhost:5432/coned_dashboard";
+// Local Postgres (docker-compose, homebrew) doesn't speak TLS — requesting SSL there fails
+// with "server does not support SSL connections", which surfaces as a 500 on every /status
+// read. Detect localhost hosts and skip SSL for them; prod URLs still get SSL.
+const _isLocalDb = (() => {
+  try {
+    const h = new URL(_connStr).hostname;
+    return h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "";
+  } catch { return false; }
+})();
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL ?? "postgresql://localhost:5432/coned_dashboard",
+  connectionString: _connStr,
   // Set DATABASE_CA_CERT env var (base64-encoded Railway CA bundle) to enable full TLS verification.
-  ssl: process.env.DATABASE_URL
-    ? process.env.DATABASE_CA_CERT
+  ssl: _isLocalDb
+    ? false
+    : process.env.DATABASE_CA_CERT
       ? { rejectUnauthorized: true, ca: Buffer.from(process.env.DATABASE_CA_CERT, "base64").toString() }
-      : { rejectUnauthorized: false }
-    : false,
+      : { rejectUnauthorized: false },
   // Tune via DB_POOL_MAX env var; default 5 works for single-dyno Railway deployments
   max: _poolMax,
   idleTimeoutMillis: 30_000,

@@ -13,9 +13,14 @@
 }
 
 @media print {
+  html, body {
+    background: #fff !important;
+  }
+
   .rp-scope {
     background: #fff;
     padding: 0;
+    min-height: 0;
   }
 
   .rp-sheet {
@@ -29,10 +34,6 @@
     min-height: 0;
   }
 
-  .rp-page--two {
-    page-break-before: always;
-  }
-
   /* Watermark stays visible in PDF (printBackground: true captures it). */
   .rp-watermark {
     position: fixed;
@@ -42,7 +43,7 @@
   /* Preserve exhibit cites and driver rows; avoid awkward breaks. */
   .rp-exhibit,
   .rp-finding,
-  .rp-signature {
+  .rp-sign {
     break-inside: avoid;
   }
 }

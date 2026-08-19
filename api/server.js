@@ -13,7 +13,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 import dotenv from "dotenv";
 import { EXPLAIN_PROMPT } from "./prompts/explainPrompt.js";
 import { csvCell, validateSpec, _isRetryable, ALLOWED_SORT_BY, ALLOWED_SORT_DIR, ALLOWED_SIGNALS, ALLOWED_USES, ALLOWED_CLUSTERS } from "./utils.js";
-import { initSchema, appendStatus, getCurrentStatus, getStatusHistory, getBulkCurrentStatus, VALID_STATUSES, saveWatchlist, loadWatchlist } from "./db.js";
+import { initSchema, appendStatus, getCurrentStatus, getStatusHistory, getBulkCurrentStatus, VALID_STATUSES, saveWatchlist, loadWatchlist, pool } from "./db.js";
+import { buildStatusEvents } from "./mergeStatusEvents.mjs";
 import { renderReportPdf, shutdownBrowser } from "./pdf.js";
 
 // Keep track of inherited keys before dotenv overrides them
@@ -292,7 +293,53 @@ app.get("/api/data/enrichment",  requireAuth, (req, res) => {
 });
 app.get("/api/data/yearly",      requireAuth, (_req, res) => res.type("json").send(DATA_CACHE.yearly));
 app.get("/api/data/yoy-deltas",  requireAuth, (_req, res) => res.type("json").send(DATA_CACHE.yoyDeltas));
-app.get("/api/events",           requireAuth, (_req, res) => res.type("json").send(DATA_CACHE.events));
+// Live-merged events feed: static events.json + STATUS events pulled from
+// Postgres at request time. Reuses buildStatusEvents from the batch merge
+// module so the shape stays identical to what the pipeline emits.
+// Falls back to the cached JSON if Postgres is unreachable.
+app.get("/api/events", requireAuth, async (_req, res) => {
+  const baseline = (() => {
+    try { return JSON.parse(DATA_CACHE.events); }
+    catch { return { events: [] }; }
+  })();
+
+  try {
+    // Last 30 days is generous for a weekly workflow; enough to surface any
+    // status write a reviewer made "recently" without dragging in years of
+    // history. Cheap because idx_bse_bbl_ts covers created_at.
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { rows } = await pool.query(
+      `SELECT bbl, status, actor, created_at
+         FROM building_status_events
+        WHERE created_at > $1
+        ORDER BY created_at DESC, id DESC`,
+      [since]
+    );
+
+    if (rows.length) {
+      // Build BBL → address from enrichment cache (address-keyed → BBL lookup)
+      const bblToAddress = {};
+      const enrichment = DATA_PARSED.enrichment ?? {};
+      for (const [addr, e] of Object.entries(enrichment)) {
+        if (e && e.bbl) bblToAddress[String(e.bbl)] = addr;
+      }
+      const statusEvents = buildStatusEvents(rows, bblToAddress);
+      // Dedup against any STATUS event with the same BBL already in the file
+      const existingBbls = new Set(
+        (baseline.events ?? [])
+          .filter((e) => e?.kind === "STATUS" && e?.bbl)
+          .map((e) => String(e.bbl))
+      );
+      const fresh = statusEvents.filter((e) => !e.bbl || !existingBbls.has(String(e.bbl)));
+      baseline.events = [...fresh, ...(baseline.events ?? [])];
+    }
+  } catch (err) {
+    console.warn("[/api/events] live status merge failed:", err.message);
+    // Fall through — return baseline as-is.
+  }
+
+  res.type("json").send(JSON.stringify(baseline));
+});
 
 // GET /api/buildings — server-side filtered + paginated building query
 app.get("/api/buildings", requireAuth, (req, res) => {
@@ -1252,11 +1299,16 @@ app.get("/api/report/:bbl.pdf", requireAuth, exportLimiter, async (req, res) => 
 
   // Prefer an explicit env var to prevent x-forwarded-host spoofing on deploys
   // where the reverse proxy does not strip client-supplied headers.
+  // In dev (NODE_ENV !== "production"), default to the Vite dev server so
+  // Puppeteer captures fresh JSX instead of a stale built dist/ served by Express.
+  const viteDevPort = process.env.VITE_DEV_PORT ?? "5173";
   const origin =
     process.env.PUBLIC_ORIGIN ??
     (process.env.RAILWAY_PUBLIC_DOMAIN
       ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-      : `${req.get("x-forwarded-proto") || req.protocol || "http"}://${req.get("x-forwarded-host") || req.get("host") || `localhost:${PORT}`}`);
+      : process.env.NODE_ENV !== "production"
+        ? `http://localhost:${viteDevPort}`
+        : `${req.get("x-forwarded-proto") || req.protocol || "http"}://${req.get("x-forwarded-host") || req.get("host") || `localhost:${PORT}`}`);
 
   try {
     const pdf = await renderReportPdf(bbl, token, { origin });

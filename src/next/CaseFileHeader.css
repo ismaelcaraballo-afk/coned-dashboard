@@ -252,7 +252,7 @@
   font-size: 13.5px;
   line-height: 1.75;
   color: var(--cf-bench-text);
-  max-width: 78ch;
+  max-width: none;
 }
 .cf-narr-body .cf-cited {
   border-bottom: 1px dotted var(--cf-bench-muted);

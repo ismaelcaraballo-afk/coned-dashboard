@@ -1,0 +1,51 @@
+{
+  "run_date": "2026-07-15T20:41:52Z",
+  "prev_run_date": "2026-07-08T20:41:52Z",
+  "generated_at": "2026-08-19T15:00:00Z",
+  "first_run": false,
+  "events": [
+    {
+      "kind": "PERMIT",
+      "subject": "660 Madison Ave.",
+      "verb": "filed a new DOB boiler-conversion permit",
+      "evidence": "PW1 · 2 days ago · #2 in queue",
+      "consequence": "Open case file",
+      "address": "660 Madison Ave.",
+      "bbl": "1013757502"
+    },
+    {
+      "kind": "TIER_UP",
+      "subject": "58 West 58th Street",
+      "verb": "promoted High → Critical",
+      "evidence": "outlier Δ '24 confirmed · trend accelerating",
+      "consequence": "Open case file",
+      "address": "58 West 58th Street",
+      "bbl": "1012737501"
+    },
+    {
+      "kind": "DIVERGE",
+      "subject": "18 E 50th Street",
+      "verb": "diverged from cluster median",
+      "evidence": "z = 2.3 vs Large Commercial · Capital Mobilized",
+      "consequence": "Open case file",
+      "address": "18 E 50th Street",
+      "bbl": "1012850059"
+    },
+    {
+      "kind": "PERMIT",
+      "subject": "200 East 42nd St.",
+      "verb": "third DOB HVAC permit filed this cycle",
+      "evidence": "cluster: office · 3 permits over 12 mo",
+      "consequence": "Open case file",
+      "address": "200 East 42nd St.",
+      "bbl": "1013150001"
+    },
+    {
+      "kind": "DATA",
+      "subject": "1,210 buildings",
+      "verb": "scanned this cycle",
+      "evidence": "4 crossed a threshold since the previous run",
+      "consequence": null
+    }
+  ]
+}

@@ -1,42 +1,55 @@
 /*
- * M5 report — screen styles. Scoped under .rp-scope so nothing leaks to
- * other routes. Print overrides live in ReportPage.print.css.
+ * M5 reasoning report — screen styles, Fable specimen fidelity.
  *
- * R3: grayscale-safe. Distinctions rely on weight/position/typography,
- * never color alone. Divergence is a text tag, not a color swap.
+ * Scoped under .rp-scope; nothing leaks to other routes. Print overrides
+ * live in ReportPage.print.css.
+ *
+ * R3: grayscale-safe. Tier words carry meaning through weight + all-caps;
+ * color is an enhancement, never the encoding.
  */
 
 .rp-scope {
-  --rp-fg: #111;
-  --rp-fg-muted: #555;
-  --rp-fg-faint: #888;
-  --rp-bg: #fff;
-  --rp-rule: #222;
-  --rp-rule-faint: #ccc;
-  --rp-page-w: 7.5in;
-  --rp-page-pad: 0.5in;
+  --rp-ink: #17181A;
+  --rp-ink-muted: #6C6F75;
+  --rp-ink-faint: #9A9DA3;
+  --rp-hair: #DDDDD8;
+  --rp-hair-faint: #EDEDE8;
+  --rp-paper: #FFFFFF;
+  --rp-desk: #E3E2DD;
 
-  color: var(--rp-fg);
-  background: #eaeaea;
-  font-family: "Times New Roman", Georgia, serif;
+  --rp-low:  #4C8A68;
+  --rp-med:  #D19A3D;
+  --rp-high: #E05545;
+  --rp-crit: #C22B1F;
+
+  --rp-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --rp-body: "Inter", system-ui, -apple-system, sans-serif;
+  --rp-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+
+  color: var(--rp-ink);
+  background: var(--rp-desk);
+  font-family: var(--rp-body);
+  font-size: 15px;
+  line-height: 1.6;
   min-height: 100vh;
-  padding: 24px 0;
+  padding: 48px 24px 96px;
   position: relative;
+  -webkit-font-smoothing: antialiased;
 }
 
 .rp-sheet {
-  max-width: var(--rp-page-w);
+  max-width: 800px;
   margin: 0 auto;
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  justify-content: center;
 }
 
 .rp-page {
-  background: var(--rp-bg);
-  padding: var(--rp-page-pad);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  min-height: 10in;
+  background: var(--rp-paper);
+  color: #1A1B1E;
+  padding: 56px 62px;
+  width: 100%;
+  box-shadow: 0 2px 24px rgba(20, 20, 20, 0.14);
   box-sizing: border-box;
 }
 
@@ -45,206 +58,368 @@
   margin: 80px auto;
   padding: 24px;
   background: #fff;
-  border: 1px solid var(--rp-rule-faint);
-  font-family: system-ui, -apple-system, sans-serif;
+  border: 1px solid var(--rp-hair);
+  font-family: var(--rp-body);
   font-size: 14px;
   line-height: 1.5;
 }
 .rp-empty--error { border-color: #900; }
 
-/* Header --------------------------------------------------------------- */
-.rp-header {
+/* ── Header ───────────────────────────────────────────────────────────── */
+.rp-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
-  border-bottom: 1px solid var(--rp-rule);
-  padding-bottom: 12px;
-  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #1A1B1E;
 }
-.rp-eyebrow {
-  font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 9px;
-  letter-spacing: 0.08em;
+.rp-head-left { flex: 1; min-width: 0; }
+.rp-kicker {
+  font-family: var(--rp-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--rp-fg-muted);
+  color: #75787E;
   margin-bottom: 6px;
 }
 .rp-address {
-  font-size: 22px;
-  margin: 0 0 6px 0;
+  font-family: var(--rp-display);
+  font-size: 24px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0;
+  max-width: 24ch;
 }
-.rp-id-meta {
-  display: flex;
-  gap: 12px;
-  font-size: 11px;
-  color: var(--rp-fg-muted);
-  font-family: ui-monospace, "SF Mono", monospace;
-}
-.rp-run-stamp {
-  font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 10px;
-  color: var(--rp-fg-muted);
+.rp-head-right {
+  font-family: var(--rp-mono);
+  font-size: 9px;
+  color: #75787E;
   text-align: right;
+  line-height: 1.9;
+}
+.rp-head-right b { color: #1A1B1E; font-weight: 500; }
+
+.rp-idline {
+  font-family: var(--rp-mono);
+  font-size: 10px;
+  color: #75787E;
+  padding: 10px 0 0;
+  letter-spacing: 0.02em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.rp-idline span { position: relative; }
+.rp-idline span + span::before {
+  content: "·";
+  color: var(--rp-ink-faint);
+  margin-right: 14px;
+  margin-left: -14px;
+  position: relative;
+  left: -7px;
 }
 
-/* Finding band --------------------------------------------------------- */
+/* ── Finding band (3 columns) ────────────────────────────────────────── */
 .rp-finding {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: baseline;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--rp-rule);
-  margin-bottom: 24px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  margin: 22px 0 6px;
+  border: 1px solid #D8D8D3;
 }
-.rp-finding-percentile {
-  font-size: 44px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
+.rp-f-col {
+  padding: 12px 14px;
 }
-.rp-finding-tier {
-  font-size: 20px;
-  font-weight: 500;
-}
-.rp-diverged {
-  font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--rp-fg-muted);
-  border: 1px solid var(--rp-fg-muted);
-  padding: 1px 4px;
-  margin-left: 6px;
-  vertical-align: middle;
-}
-.rp-finding-coverage {
-  font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 11px;
-  color: var(--rp-fg-muted);
-}
-
-/* Narrative ------------------------------------------------------------ */
-.rp-narrative {
-  margin-bottom: 24px;
-}
-.rp-narrative-slot {
-  font-size: 12px;
-  line-height: 1.6;
-  margin: 0 0 10px 0;
-}
-.rp-cite {
-  font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 9px;
-  margin-left: 3px;
-  color: var(--rp-fg-muted);
-}
-
-/* Method footer + signature ------------------------------------------- */
-.rp-method-brief {
-  border-top: 1px solid var(--rp-rule-faint);
-  padding-top: 12px;
-  margin-bottom: 24px;
-}
-.rp-method-line,
-.rp-method-link {
-  font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 10px;
-  color: var(--rp-fg-muted);
-  margin: 0 0 4px 0;
-  line-height: 1.5;
-}
-.rp-method-link a {
-  color: inherit;
-}
-
-.rp-signature {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 24px;
-  border-top: 1px solid var(--rp-rule);
-}
-.rp-sig-row {
-  display: flex;
-  gap: 12px;
-  align-items: baseline;
-  font-size: 11px;
-}
-.rp-sig-label {
-  font-family: ui-monospace, "SF Mono", monospace;
-  color: var(--rp-fg-muted);
-  min-width: 100px;
-}
-.rp-sig-line {
-  font-family: ui-monospace, "SF Mono", monospace;
-  color: var(--rp-fg-faint);
-  letter-spacing: 0.05em;
-}
-.rp-sig-bureau {
-  margin-top: 8px;
-  font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 10px;
+.rp-f-col + .rp-f-col { border-left: 1px solid #D8D8D3; }
+.rp-f-label {
+  font-family: var(--rp-mono);
+  font-size: 8.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--rp-fg-muted);
+  color: #75787E;
+  margin-bottom: 5px;
 }
-
-/* Exhibits page -------------------------------------------------------- */
-.rp-exhibits-heading {
-  font-size: 16px;
-  margin: 0 0 16px 0;
-  border-bottom: 1px solid var(--rp-rule);
-  padding-bottom: 8px;
+.rp-f-main {
+  font-family: var(--rp-mono);
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
-.rp-exhibit {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px dashed var(--rp-rule-faint);
+.rp-f-suffix {
+  font-size: 10px;
+  color: #75787E;
+  font-weight: 400;
+  margin-left: 4px;
 }
-.rp-exhibit:last-child { border-bottom: none; }
-.rp-exhibit h3 {
+.rp-tierword {
   font-size: 12px;
-  margin: 0 0 8px 0;
-  font-family: ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--rp-fg-muted);
 }
-.rp-exhibit-body {
-  font-size: 12px;
+.rp-tierword.low  { color: var(--rp-low); }
+.rp-tierword.med  { color: var(--rp-med); }
+.rp-tierword.high { color: var(--rp-high); }
+.rp-tierword.crit { color: var(--rp-crit); }
+
+.rp-f-sub {
+  font-family: var(--rp-mono);
+  font-size: 8.5px;
+  color: #75787E;
+  margin-top: 4px;
+  line-height: 1.7;
+}
+.rp-caveat-line {
+  font-family: var(--rp-mono);
+  font-size: 8.5px;
+  color: #75787E;
+  padding: 6px 2px 0;
+  margin-bottom: 24px;
   line-height: 1.6;
 }
-.rp-drivers {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+
+/* ── Section labels ──────────────────────────────────────────────────── */
+.rp-sec-label {
+  font-family: var(--rp-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #75787E;
+  margin: 26px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid #E6E6E1;
 }
-.rp-driver-row {
+
+/* ── Narrative ───────────────────────────────────────────────────────── */
+.rp-narr {
+  font-size: 13px;
+  line-height: 1.85;
+  max-width: 66ch;
+}
+.rp-narr p { margin: 0 0 12px 0; }
+.rp-cited {
+  border-bottom: 1px dotted #9A9DA3;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rp-sup {
+  font-family: var(--rp-mono);
+  font-size: 8px;
+  color: #75787E;
+  margin-left: 1px;
+}
+
+/* ── Exhibits grid ───────────────────────────────────────────────────── */
+.rp-exhibits {
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 12px;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--rp-rule-faint);
-  font-size: 11px;
-  font-family: ui-monospace, "SF Mono", monospace;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px;
 }
-.rp-driver-value,
-.rp-driver-contrib {
+@media (max-width: 640px) {
+  .rp-exhibits { grid-template-columns: 1fr; }
+}
+.rp-exhibit {
+  min-width: 0;
+}
+.rp-exhibit h4 {
+  font-family: var(--rp-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1A1B1E;
+  margin: 0 0 8px 0;
+}
+.rp-exhibit h4 span {
+  color: #75787E;
+  font-weight: 400;
+}
+
+.rp-ex-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rp-ex-table td {
+  font-size: 10.5px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rp-hair-faint);
+  vertical-align: middle;
+}
+.rp-ex-f { color: #1A1B1E; }
+.rp-ex-v {
+  font-family: var(--rp-mono);
+  color: #55585E;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-right: 8px;
+  text-align: right;
+}
+.rp-ex-c {
+  font-family: var(--rp-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+  font-weight: 600;
+}
+.rp-ex-c.neg { color: #75787E; font-weight: 400; }
+.rp-ex-empty {
+  font-family: var(--rp-mono);
+  font-size: 10px;
+  color: #75787E;
+  padding: 8px 0;
+  text-align: center;
+}
+.rp-dir {
+  display: inline-block;
+  min-width: 12px;
+  margin-right: 6px;
+  color: #1A1B1E;
+}
+.rp-ex-c.neg .rp-dir { color: #75787E; }
+
+/* SHAP contribution bar. R3: filled (positive) vs outlined (negative)
+   encodes direction without color. Bar width scales with |contribution|. */
+.rp-ex-c { white-space: nowrap; }
+.rp-bar {
+  display: inline-block;
+  height: 8px;
+  vertical-align: middle;
+  margin-right: 6px;
+  border: 1px solid #1A1B1E;
+  box-sizing: border-box;
+}
+.rp-bar--pos { background: #1A1B1E; }
+.rp-bar--neg { background: transparent; }
+.rp-bar-label {
   font-variant-numeric: tabular-nums;
 }
-.rp-empty-inline { color: var(--rp-fg-muted); font-size: 11px; }
 
-/* Watermark ------------------------------------------------------------ */
+/* Exhibit B trend chart. Grayscale-safe: single ink stroke + endpoint dots. */
+.rp-trend-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 100px;
+  margin: 4px 0 8px;
+}
+.rp-trend-axis { stroke: #DDDDD8; stroke-width: 1; }
+.rp-trend-line { stroke: #1A1B1E; stroke-width: 1.5; }
+.rp-trend-dot { fill: #1A1B1E; }
+.rp-trend-xlabel {
+  font-family: var(--rp-mono);
+  font-size: 8px;
+  fill: #75787E;
+}
+.rp-trend-ylabel {
+  font-family: var(--rp-mono);
+  font-size: 8px;
+  fill: #75787E;
+}
+
+.rp-ex-math {
+  font-family: var(--rp-mono);
+  font-size: 10.5px;
+  line-height: 1.9;
+  color: #55585E;
+}
+.rp-ex-math b { color: #1A1B1E; font-weight: 600; }
+.rp-ex-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rp-ex-rule {
+  border-top: 1px solid #1A1B1E;
+  margin-top: 4px;
+  padding-top: 6px;
+}
+.rp-ex-note {
+  font-family: var(--rp-mono);
+  font-size: 9px;
+  color: #9A9DA3;
+  line-height: 1.7;
+  margin-top: 10px;
+  max-width: 44ch;
+}
+
+/* ── Method + signature ──────────────────────────────────────────────── */
+.rp-method {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #75787E;
+  max-width: 74ch;
+}
+.rp-method b { color: #1A1B1E; font-weight: 600; }
+
+.rp-sign {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 26px;
+  padding-top: 14px;
+  border-top: 2px solid #1A1B1E;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.rp-sig-block {
+  font-family: var(--rp-mono);
+  font-size: 9.5px;
+  color: #75787E;
+  line-height: 2;
+}
+.rp-sig-block b { color: #1A1B1E; font-weight: 500; }
+.rp-sig-line {
+  color: var(--rp-ink-faint);
+  letter-spacing: 0.05em;
+}
+.rp-disclaimer {
+  font-family: var(--rp-mono);
+  font-size: 8.5px;
+  color: #75787E;
+  text-align: right;
+  max-width: 300px;
+  line-height: 1.7;
+}
+
+/* ── Actions (download / email) ──────────────────────────────────────── */
+.rp-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 14px 0 4px;
+  flex-wrap: wrap;
+}
+.rp-action {
+  font-family: var(--rp-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border: 1px solid #1A1B1E;
+  background: #fff;
+  color: #1A1B1E;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.rp-action:hover { background: #1A1B1E; color: #fff; }
+.rp-action-flash {
+  font-family: var(--rp-mono);
+  font-size: 9.5px;
+  color: #75787E;
+  margin-left: 4px;
+}
+.rp-action-flash--err { color: #C22B1F; }
+@media print { .rp-actions { display: none; } }
+
+/* ── Watermark ───────────────────────────────────────────────────────── */
 .rp-watermark {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-30deg);
-  font-family: ui-monospace, "SF Mono", monospace;
+  font-family: var(--rp-mono);
   font-size: 140px;
   font-weight: 700;
   letter-spacing: 0.1em;

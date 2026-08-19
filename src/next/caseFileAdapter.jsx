@@ -72,7 +72,7 @@ export function computePercentileMap(buildings) {
     let j = i;
     while (j < n && scored[j].ml_risk === scored[i].ml_risk) j++;
     const rank = i + 1;
-    const pct = Math.max(1, Math.round(((n - rank + 1) / n) * 100));
+    const pct = Math.max(1, Math.min(99, Math.round(((n - rank + 1) / n) * 100)));
     const tieCount = j - i;
     for (let k = i; k < j; k++) {
       pctByAddr.set(scored[k].address, { pct, rank, tieCount });
