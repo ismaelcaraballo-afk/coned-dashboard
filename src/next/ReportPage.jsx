@@ -173,6 +173,7 @@ function ReportSheet({ identity, finding, narrative, exhibits, method, signature
               <span className="rp-sig-label">Reviewed by</span>
               <span className="rp-sig-line">{signature.reviewedBy ?? "____________________"}</span>
             </div>
+            <div className="rp-sig-bureau">Pursuit × ConEd Steam Ops</div>
           </section>
         </section>
 

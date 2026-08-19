@@ -85,9 +85,18 @@ export function computePercentileMap(buildings) {
 
 // ── ScoreCell adapter ────────────────────────────────────────────────────────
 // Maps a building + pctMap → props ready to spread onto <ScoreCell />.
-export function toScoreCellProps(building, pctMap) {
+export function toScoreCellProps(building, pctMap, queueRank = null) {
   const entry = pctMap.pctByAddr?.get(building.address);
-  const percentile = entry ? ordinal(entry.pct) : "est.";
+  // When rendered inside a queue (filtered subset), the caller passes
+  // queueRank = position within the visible list (1..N). That reads as a
+  // proper queue ("#1, #2, #3…"). Absent that, fall back to portfolio rank
+  // (`#N / total`) — honest and discriminates in the top-percentile tail
+  // where percentile rounding collapses top rows to "100th."
+  const percentile = queueRank != null
+    ? `#${queueRank}`
+    : entry
+      ? `#${entry.rank} / ${pctMap.total.toLocaleString()}`
+      : "est.";
 
   const finalTier = building.diagnostic_risk ?? "Uncertain";
   const ml = building.ml_risk;

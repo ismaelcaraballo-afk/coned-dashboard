@@ -80,13 +80,10 @@ export default function CaseFileContainer() {
   }, [building, pctMap, modelMeta, currentStatus]);
 
   return (
-    <div className="cfc-page">
+    <div className="cfc-page sc-scope">
+      {/* Preview-scaffold header retired 2026-08-19 — surface identity
+          comes from the global ProvenanceStrip (D37). */}
       <header className="cfc-header">
-        <div className="cfc-meta">
-          <span>ConEd Steam Attrition · M4</span>
-          <span>Case-file container · in situ</span>
-          <span>Preview build</span>
-        </div>
         <h1>Case file</h1>
         <p className="cfc-lede">
           Live wiring of the Spec 2 atom against building data,{" "}

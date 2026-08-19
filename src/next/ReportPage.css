@@ -184,6 +184,14 @@
   color: var(--rp-fg-faint);
   letter-spacing: 0.05em;
 }
+.rp-sig-bureau {
+  margin-top: 8px;
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rp-fg-muted);
+}
 
 /* Exhibits page -------------------------------------------------------- */
 .rp-exhibits-heading {

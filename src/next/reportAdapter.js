@@ -175,8 +175,8 @@ function capEquivalent(b) {
   // Placeholder derivation — real cap-equivalent computation lands with
   // M5 content pass. The scaffold surfaces the field so print CSS can
   // exercise the exhibit box.
-  if (Number.isFinite(b.ll97_penalty_2024)) {
-    return `${fmtMoney(b.ll97_penalty_2024)} 2024 penalty exposure`;
+  if (Number.isFinite(b.ll97_penalty_2030)) {
+    return `${fmtMoney(b.ll97_penalty_2030)} 2030 penalty exposure`;
   }
   return "cap-equivalent pending";
 }

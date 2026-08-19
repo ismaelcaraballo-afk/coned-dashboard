@@ -42,12 +42,9 @@ export default function MethodologyPage() {
       label="MethodologyPage"
       fallback={<div className="mp-error">Methodology page failed to load. Check the browser console for details.</div>}
     >
-      <div className="mp-scope">
-        <header className="mp-topbar">
-          <span className="mp-eyebrow">CONED STEAM ATTRITION · M10</span>
-          <span className="mp-eyebrow-dot">·</span>
-          <span className="mp-eyebrow">METHODOLOGY · REGISTER</span>
-        </header>
+      <div className="mp-scope sc-scope">
+        {/* Local topbar retired 2026-08-19 — surface identity comes from
+            the global ProvenanceStrip (D34/D37). */}
 
         {modelMetaErr && (
           <div className="mp-warn">
@@ -596,6 +593,8 @@ function ProvenanceBlock({ modelMeta }) {
       <dd><code>{modelMeta.commit}</code></dd>
       <dt>Pipeline run</dt>
       <dd>{formatRunDate(modelMeta.run_date)}</dd>
+      <dt>Built by</dt>
+      <dd>Pursuit for Con Edison</dd>
     </dl>
   );
 }

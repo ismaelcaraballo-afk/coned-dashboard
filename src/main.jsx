@@ -14,6 +14,7 @@ import MethodologyPage from './next/MethodologyPage.jsx'
 import ThisWeekPage from './next/ThisWeekPage.jsx'
 import DigestPage from './next/DigestPage.jsx'
 import CommandPalette from './next/CommandPalette.jsx'
+import ProvenanceStrip from './next/ProvenanceStrip.jsx'
 
 function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -29,6 +30,7 @@ function AppShell() {
   }, []);
   return (
     <>
+      <ProvenanceStrip />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/legacy" element={<LegacyApp />} />

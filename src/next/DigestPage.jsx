@@ -99,13 +99,11 @@ function DigestPageInner() {
   const mailtoHref = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   return (
-    <div className="dg-page">
+    <div className="dg-page sc-scope">
+      {/* Preview-scaffold header retired 2026-08-19 — surface identity
+          comes from the global ProvenanceStrip (D37). Page opens on the
+          compose title as its first content block. */}
       <header className="dg-header">
-        <div className="dg-meta">
-          <span>ConEd Steam Attrition · M12</span>
-          <span>Weekly digest · compose flow</span>
-          <span>Preview build</span>
-        </div>
         <h1>Compose weekly digest</h1>
         <p className="dg-lede">
           Draft assembled from the same signals as the This Week landing.

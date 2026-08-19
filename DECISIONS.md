@@ -139,3 +139,148 @@ Context: W6 spec calls for a command bar in the This Week topbar. Two design pat
 Decided: Option c (hybrid). Palette shell (fuzzy match over 8 static commands: nav + filter shortcuts) works standalone with no network calls — demo-safe. New /api/palette endpoint (auth-gated, aiLimiter) sends {query, commands} → LLM returns either {kind:"action", commandId} (route to existing button) or {kind:"answer", answer, suggest[]} (short reply + suggested commands). LLM output is validated against the sent registry — no invented commands or hallucinated buildings. Graceful degradation: 429/503/no-key/error each render a distinct message; palette stays usable without AI.
 Rejected: (a) leaves the "why isn't AI doing anything" gap for a leadership demo without answering it. (b) reopens the "AI in the surface" design decision the team parked in M0 (AIAgent → legacy) and violates W6 (buttons first). Hybrid preserves W6 because every LLM-suggested action IS a button that already exists elsewhere on the surface.
 Affects: new src/next/CommandPalette.jsx + CSS, mounted globally via AppShell wrapper in src/main.jsx; new /api/palette handler in api/server.js (~65 lines with PALETTE_SYSTEM prompt); ⌘K hint chip in /this-week topbar next to Compose button. Filter-command actions currently just navigate to /this-week — real filter application deferred (needs shared filter store or ?filter= URL param on Rankings/queue).
+
+## D22 | 2026-08-19 | Local Postgres via docker-compose (postgres:16-alpine) over Homebrew
+Context: W5 carry-over Age column renders "—" for every row locally because status-events table is empty (no local Postgres). Two setup paths: (a) docker-compose with postgres:16-alpine matching Railway prod; (b) Homebrew Postgres (whatever version is current on the machine).
+Decided: Option a. Parity with the Railway-managed Postgres 16 image eliminates schema/behavior drift risk, and `docker compose down -v` wipes the volume cleanly when re-seeding is needed. Cost is one-time (start Docker Desktop) vs Homebrew's ongoing "which pg version am I on" tax across projects.
+Rejected: Option b avoids launching Docker Desktop but ships whatever Postgres version Homebrew ships today (often ahead of prod), and Homebrew Postgres is a long-lived shared service across projects, not a per-repo disposable.
+Affects: new docker-compose.yml at repo root (service `postgres`, container `coned-postgres`, port 5432, named volume `coned_pgdata`, healthcheck). CLAUDE.md Quick start now documents the docker path. Landed in PR #36 commit 185b932.
+
+## D23 | 2026-08-19 | Fix ES-module env-load ordering via `node --env-file-if-exists=.env` in npm scripts, not dotenv import in db.js
+Context: Local Postgres never worked in dev because `api/db.js` constructs `pg.Pool` at import time using `process.env.DATABASE_URL`, but ES-module imports are hoisted and run BEFORE `dotenv.config()` on line 25 of `api/server.js`. So DATABASE_URL from .env is never loaded and Pool falls back to a passwordless localhost string. Two fixes: (a) `import "dotenv/config"` at top of db.js; (b) `node --env-file-if-exists=.env` in npm scripts so Node loads env before any user code runs.
+Decided: Option b. Node-native (>=20.12), zero app-code change, preserves the placeholder-restoration logic in server.js that swaps Claude-Code's inherited ANTHROPIC_API_KEY back after dotenv overrides it with the .env placeholder. Prod (Railway) unaffected: no .env file present, `--env-file-if-exists` no-ops, Railway-set env vars are already in process.env before Node starts.
+Rejected: Option a would cause db.js to load .env at import time and set `originalAnthropicKey = process.env.ANTHROPIC_API_KEY` (line 20 of server.js) to the .env placeholder instead of the inherited shell value, breaking the LLM-key restoration path. Also uglier: leaks env-loading responsibility into a data-layer module.
+Affects: package.json scripts `start`, `dev`, `dev:api` (all three prefixed with `node --env-file-if-exists=.env`); no code changes to api/db.js or api/server.js env-handling. Landed in PR #36 commit 185b932.
+
+## D24 | 2026-08-19 | Add `--sc-motion-scene: 320ms` token for cross-surface transitions
+Context: `--sc-motion-fast` (120ms) and `--sc-motion-med` (180ms) budgeted for interaction feedback. Scene transitions (login→workbench) under 250ms read as a hard cut, not a movement. Login parting's collapse leg and workbench fade-in both need a shared, deliberate duration.
+Decided: Add `--sc-motion-scene: 320ms` alongside fast/med. One easing shared with the rest of the system. Total scene budget ~550ms for the whole login→workbench event.
+Affects: `src/next/ScoreCell.css` `.sc-scope` block. Consumed by `LoginForm.css` parting collapse, `ThisWeekPage.css` `.tw-workbench--entering` fade-up.
+
+## D25 | 2026-08-19 | `onLogin` fires at parting start; workbench mounts underneath as it fades up
+Context: Previous flow was setParting(true), wait 420ms setTimeout, then onLogin. That left ~300ms of dead canvas after the cover collapse before the workbench cut in — visible as a hard cut.
+Decided: LoginForm fires `onLogin(token)` immediately when parting starts (setPulses([]) → setParting(true) → onLogin). Parent (`ThisWeekPage`) tracks its own `parting` state and keeps LoginForm mounted as an overlay for PARTING_DURATION_MS (520ms) while the workbench renders underneath with `.tw-workbench--entering` (opacity 0→1 over --sc-motion-scene). New optional `onPartingEnd` prop signals when parent can drop the overlay.
+Affects: `src/next/LoginForm.jsx` (parting flow, new PARTING_DURATION_MS constant, new prop), `src/next/ThisWeekPage.jsx` (parting state, overlay wrapper, --entering class), `src/next/ThisWeekPage.css` (`.tw-workbench--entering` animation, `.tw-login-overlay`).
+
+## D26 | 2026-08-19 | Cancel live pulses at parting start (Fable diagnostic)
+Context: Recording showed a stepped form fade (four visible ~90ms steps) during parting. Hypothesis: 16 concurrent SVG-path animations still running during the collapse caused main-thread contention.
+Decided: Call `setPulses([])` before `setParting(true)`. Freezes the composition to the resting baseline before the transition begins.
+Affects: `src/next/LoginForm.jsx` handleSubmit.
+
+## D27 | 2026-08-19 | Prefetch effect via onLogin-at-parting-start
+Context: Fable proposed prefetching ThisWeek data on login-input focus. Endpoints require Bearer auth, so a pre-token fetch would 401.
+Decided: Skip the input-focus prefetch. onLogin-at-parting-start (D25) gives 520ms of effective prefetch time by moving setToken 420ms earlier, so useBuildings/useEvents fetches start during the parting animation instead of after it.
+Affects: Behavioral, not code — realized as a side effect of D25.
+
+## D28 | 2026-08-19 | Login form rebuilt as rules (no card, no border, no blur)
+Context: The glass-blur card existed to solve legibility when the wave passed behind the input, but it made the form read as a widget hovering above the composition (Fable composition answer).
+Decided: Strip `.lf-form` down to `display: flex; gap: 10px`. No background, no backdrop-filter, no border. Legibility solved in composition instead (D30 envelope notch).
+Affects: `src/next/LoginForm.css` `.lf-form`.
+
+## D29 | 2026-08-19 | Resting baseline — amplitude-zero flat line always present
+Context: Before any keystroke the login was a bordered card floating in a void — the composition being evaluated existed only during typing.
+Decided: Render a persistent `.lf-baseline` `<path>` at CENTER_Y across the full SVG width, stroke-1, opacity 0.85. Typing excites the composition on top of this line; parting dissolves the pulses and leaves the baseline as the horizon.
+Affects: `src/next/LoginForm.jsx` (new RESTING_LINE_D constant, new `<path className="lf-baseline">`), `src/next/LoginForm.css` `.lf-baseline` styling.
+
+## D30 | 2026-08-19 | Envelope notch over form x-range
+Context: Wave and form share the same vertical center. Without a notch, the wave crosses through the input area and the card had to hide it.
+Decided: Add `notchMultiplier(t)` — raised-cosine falloff (0 at center, 1 at edge) applied inside `harmonicPath()`. NOTCH_CENTER=0.5, NOTCH_HALF=0.16 of HARMONIC_W. The wave goes flat where the field sits; the field baseline sits in that flat segment.
+Affects: `src/next/LoginForm.jsx` `harmonicPath` + new notchMultiplier + constants.
+
+## D31 | 2026-08-19 | Eyebrow mark replaces cut lede
+Context: The previous surface lede was a full sentence explaining the product, cut during login polish, leaving nothing that named the product on the sign-in door.
+Decided: `<p className="lf-eyebrow">ConEd Steam Attrition · This Week</p>` — one mono line above the form. Product name only, no sentence. surfaceLede prop removed from LoginForm entirely.
+Affects: `src/next/LoginForm.jsx` (prop removal + eyebrow), `src/next/LoginForm.css` `.lf-eyebrow`, `src/next/ThisWeekPage.jsx` (SURFACE_LEDE const removed, prop removed from LoginForm call).
+
+## D32 | 2026-08-19 | Helper split: "Shared team password" at field, session expiry moves to ProvenanceStrip
+Context: The helper line said "Shared password. Sessions expire hourly." Two facts, two audiences: "why no username" belongs at the field; "when does it expire" is a workbench fact needed at hour 0:55, not at sign-in.
+Decided: Helper becomes "Shared team password" (no terminal period). Session expiry moves to ProvenanceStrip as "session HH:MM" (D34).
+Affects: `src/next/LoginForm.jsx` `.lf-helper`, `src/next/ProvenanceStrip.jsx` useSessionExpiry hook + `.ps-session` slot.
+
+## D33 | 2026-08-19 | Motif echoes at quiet volumes (topbar divider + empty-state, future)
+Context: Login is a three-second surface used twice a day. The motif needs middle volumes elsewhere so it doesn't wear out.
+Decided: Loud volume at the door (login pulses). Quiet volumes at the ProvenanceStrip divider (D35 WaveDivider) and eventually at ThisWeek's empty-state ("nothing crossed a threshold"). The empty-state echo is post-bundle work.
+Affects: `src/next/WaveDivider.jsx` (this bundle). Empty-state echo tracked as follow-up.
+
+## D34 | 2026-08-19 | Global `ProvenanceStrip` (~32px, one line, mono, provenance-heavy)
+Context: Every surface consumed model outputs but only ThisWeek showed the freshness stamp (`model_meta.run_date`), and per-surface eyebrows drifted ("ConEd Steam Attrition · M9" vs "CONED STEAM ATTRITION · M10 · METHODOLOGY · REGISTER"). Five of seven surfaces were out of compliance with system-v1.1 W1 (every surface anchors time to the pipeline run).
+Decided: One-line strip, ~32px, mono. Left→right: product mark → route-driven surface name → spacer → run stamp + model chip + session expiry → ⌘K button → Sign out. Sticky top, z-index 20. Hidden pre-auth, hidden on `/` and `/legacy`, suppressed via `@media print`.
+Affects: New `src/next/ProvenanceStrip.jsx` + `.css`, mounted globally in `src/main.jsx` AppShell above Routes.
+
+## D35 | 2026-08-19 | `WaveDivider` component; exposes `--sc-divider-y` and `--sc-divider-stroke` on `.sc-scope`
+Context: The ThisWeek topbar's static wave divider was load-bearing motion (D26 chrome-answer dependency) — the login parting's horizon-line was going to hand off to it. Retiring per-surface topbars would break the handoff.
+Decided: New `WaveDivider` component, owned by ProvenanceStrip. Static SVG sine, stroke 1. Exposes `--sc-divider-y: 34px` (the strip's bottom edge) and `--sc-divider-stroke: var(--sc-bench-line)` on `.sc-scope` so the login parting can target them from anywhere.
+Affects: New `src/next/WaveDivider.jsx`, `ProvenanceStrip.css` `.sc-scope` custom props.
+
+## D36 | 2026-08-19 | Route-name table as single source of surface names
+Context: Per-surface eyebrows drifted into "CONED STEAM ATTRITION · M10 · METHODOLOGY · REGISTER" because every surface hardcoded its own string.
+Decided: `src/next/routeNames.js` maps pathname → name. Static map plus a small dynamic-pattern list for `/case-file/:bbl` and `/report/:bbl`. Milestone tokens (M9, M10, R11) excluded per D40.
+Affects: New `src/next/routeNames.js`, consumed by ProvenanceStrip.
+
+## D37 | 2026-08-19 | Retire six local topbars — surface identity moves to ProvenanceStrip
+Context: With D34/D35 landing, per-surface topbars became redundant with the strip. Two-tier headers were the worst outcome.
+Decided:
+  - `mp-topbar` (Methodology): deleted (was trivial caps eyebrow).
+  - `tw-topbar` (ThisWeek): deleted. The "Compose weekly digest" Link relocated to a new `.tw-page-heading` block as the surface's first content, alongside the page title and run-date subtitle.
+  - `dg-header` / `rankings-header` / `cfc-header`: preview-scaffold "Preview build · M#" meta strips deleted; page titles + ledes retained as the surface's first content.
+  - `rp-header` (Report): NOT touched — it's the printed report's letterhead inside `.rp-sheet`, not app chrome.
+Affects: `MethodologyPage.jsx`, `ThisWeekPage.jsx`, `ThisWeekPage.css` (new .tw-page-heading), `DigestPage.jsx`, `RankingsPage.jsx`, `CaseFileContainer.jsx`.
+
+## D38 | 2026-08-19 | ProvenanceStrip suppressed via `@media print` on Report
+Context: Report page is print-optimized (R2/R3) and its printed sheet carries its own provenance (signature block). A screen-only chrome strip has no place on paper.
+Decided: `.ps-strip { display: none; }` inside `@media print` in ProvenanceStrip.css. Divider not needed on paper — the Report's own rules handle printed layout.
+Affects: `src/next/ProvenanceStrip.css`.
+
+## D39 | 2026-08-19 | No visible logos; provenance in Methodology version block + Report signature
+Context: Neither ConEd's nor Pursuit's logo fits the workbench voice. But the fact "Pursuit-built for ConEd" belongs somewhere.
+Decided: Two provenance homes, no logos.
+  - Methodology model-version block gains "Built by / Pursuit for Con Edison" as a new <dt>/<dd> pair.
+  - Report signature block gains a "Pursuit × ConEd Steam Ops" bureau line under the signatures (`.rp-sig-bureau`).
+  - Login and strip carry the product name only. If ConEd asks for its mark later, strip's left slot can take a monochrome glyph without changing anything else.
+Affects: `MethodologyPage.jsx` (new dt/dd), `ReportPage.jsx` (new .rp-sig-bureau div), `ReportPage.css` (styling).
+
+## D40 | 2026-08-19 | Milestone tokens (M9, M10, R11) removed from user-visible UI
+Context: Preview scaffolds shipped with "· M12" / "· M4" / etc. tokens next to product names. Client-facing readers see internal build bookkeeping.
+Decided: Strip milestone tokens from all user-visible copy. Route-name table (D36) surface names carry no M-prefix. Retained inside code comments / commit messages / DECISIONS.md where they aid navigation.
+Affects: Same six surfaces as D37; ProvenanceStrip carries no milestone token.
+
+## D41 | 2026-08-19 | DRAFT_login-branding-ask.md moot; do not send
+Context: Draft ask proposed either (a) logo-morph resolution to login parting or (b) paired neon-purple + ConEd-blue color flashes as branding-through-color. Both mechanisms depended on the answer to "does the login need a branding signal at all?"
+Decided: Fable's Q4 chrome answer said no visible logos anywhere in the workbench, including login. D39 puts provenance in methodology + report signatures instead. Both draft options are rejected on principle. Archive the DRAFT for reference; do not send.
+Affects: Renamed `docs/fable/2026-08-19_login-bundle/DRAFT_login-branding-ask.md` → `ARCHIVED_login-branding-ask.md`.
+
+## D42 | 2026-08-19 | Landing surface reframed as reconciliation layer; weekly-cadence claim narrowed
+Context: Ed pushed back that "This Week" bakes a weekly-cadence assumption about ConEd client interactions that may not match reality. Full retraction of weekly cadence would reopen W6, the digest artifact, and the M9 landing composition — too big for the 48hr pre-demo window.
+Decided: Keep the weekly-cadence system claim (W6, digest, M9 landing) untouched for now. Reframe the landing surface itself as the reconciliation layer between client operations and ConEd — cadence-neutral in voice and name. Route stays `/this-week` to avoid link churn; the name in the route-name table changes. Specific replacement name deferred (candidates: Triage / Landing / Home).
+Rejected: (a) Full weekly-cadence retraction — too much scope before Wednesday, reopens digest identity. (b) Ship as-is with "This Week" — the surface name would carry a claim we can't defend if cadence turns out different.
+Affects: Route-name table (D36), ThisWeekPage.jsx copy/voice, downstream W6 revisit if cadence assumption fails. RETURN-TO: revisit weekly-cadence claim in W6/digest/M9 after ConEd walk yields real cadence signal.
+
+## D43 | 2026-08-19 | LL97 display defaults to 2030 penalty, not 2024
+Context: Display sites split between `ll97_penalty_2024` and `ll97_penalty_2030` inconsistently. `src/data/ll97Bands.js` had the reasoning as a code comment ("2024 caps are too loose to discriminate") but it was never logged as a decision, and three display sites still showed 2024 — producing "$0" on many buildings because 2024 caps rarely bind. Aggregate view, bands, case-file sub, RankingsTable all already used 2030.
+Decided: LL97 penalty *displayed to users* defaults to the 2030 cap everywhere. Both display years may be shown side-by-side in surfaces that explicitly compare (case-file exhibit, methodology), but the default headline number is 2030. Model-side encoding (`ll97_penalty_2024_log` as an XGBoost feature) is unaffected — this is a display convention, not a feature-engineering change.
+Rejected: (a) Keep 2024 as default — most buildings show $0, which reads as "no exposure" when the truth is "not exposed *yet*." (b) Show both years by default everywhere — noise on rows where one line already suffices.
+Affects: CriticalQueue.jsx list-view column, reportAdapter.js capEquivalent driver line, any future top-driver copy. `src/data/useBuildings.js:12` composite-risk weight input NOT changed (scoring signal, not display; separate call).
+
+## D44 | 2026-08-19 | Landing surface renamed "Since last run"; mono title register
+Context: D42 reframed the landing as a cadence-neutral reconciliation layer but deferred the actual name. Empty state on `/this-week` in dev exposed the misfit (reads as "the week is empty," not "nothing to reconcile"). Ed also flagged the h1 "This Week" as reading toyish in Inter 22px above a mono subtitle. Asked Fable (docs/fable/2026-08-19_landing-framing-ask.md); answer at docs/fable/answers/2026-08-19_landing-framing-answer.md.
+Decided: Surface name is "Since last run" — Fable's coinage. Reasons: cadence-neutral, is W1's second anchor stated as a title, stays true whether runs are weekly or daily, was already the delta-feed section label, reads like a place in the route-name table breadcrumb. Typographic treatment: mono register, caps, tracked, ~13px (one step above section labels' 12px), not Inter h1. "A title that looks like the data line it describes can't float."
+Rejected: "Bench" (metaphor collision — rankings and case-file are already the workbench), "Attention" (names a feeling, not a state), dropping the h1 entirely (right about the claim, wrong about the walk — first screen shouldn't look unfinished).
+Affects: `src/next/ThisWeekPage.jsx` title copy + subtitle, `src/next/ThisWeekPage.css` `.tw-page-title`, `src/next/routeNames.js` `/this-week` entry. Delta-feed section label dropped (title carries it); right-stat floats as `.tw-feed-meta`.
+
+## D45 | 2026-08-19 | Empty-state copy for delta feed (workbench voice)
+Context: Prior placeholder "Event feed begins with the first diffed pipeline run. Nothing to show yet." read like a bug report. Empty state now more visible under D44 rename.
+Decided: Two-sentence cell-style copy per Fable — "Run [date] · no changes since the previous run. Queue and pulse below reflect the current run. First diffed run populates this feed." Names the run, states the absence, points reader at the two sections that DO have content. Second sentence covers both empty-day and first-run cases.
+Rejected: "No new deltas since last run" (internal vocabulary), "Nothing crossed a threshold this run" (leaks M8 chip taxonomy).
+Affects: `src/next/ThisWeekPage.jsx` firstRun / empty-feed placeholder.
+
+## D46 | 2026-08-19 | Drop "Week of" from subtitle; queue label loses "this week"
+Context: D44 landed but "Week of Aug 18" in subtitle and "Your queue this week" in section label continued to echo the weekly cadence claim D42 walked back for this surface.
+Decided: Subtitle becomes "pipeline run [date]" alone (the "your last review [date]" second anchor lands once M6 last-review marker exists; until then, run alone is honest per W1). Queue section label becomes "Your queue" (loses "this week"). Digest naming and W6 system claim untouched per D42 — this only removes the landing's echo of weekly cadence.
+Rejected: Keeping "Week of" as a soft anchor for user habit (Fable: the week anchor was the subtitle doing the title's job, and W1 has only two anchors — pipeline run and analyst's last review — neither of which is "Week of").
+Affects: `src/next/ThisWeekPage.jsx` subtitle + queue section label. `fmtWeekOf()` helper now unused (leaving in place — small dead-code follow-up).
+
+## D47 | 2026-08-19 | Landing h1 reverts to "This Week" in Space Grotesk 19px; supersedes D44 title register
+Context: Ismael leadership walk (Wed 2026-08-20) needs `/this-week` to visually match Fable's `docs/design/fable-round-0-2026-07-12/this-week-landing.html` artifact. Structured diff against the artifact (Round 1+2 alignment pass this session, via Explore subagent) surfaced the h1 as the largest-impact break: artifact uses Space Grotesk 19px mixed-case "This Week"; D44 had specified mono/caps/tracked/~13px "Since last run." Applying D44 alongside the ProvenanceStrip (D34/D37) also produced a visible copy dupe — the strip carries "Since last run" as the surface anchor, and the h1 repeated it verbatim one row below.
+Decided: h1 becomes "This Week" in Space Grotesk 19px, weight 600, letter-spacing −0.01em, mixed case — matching the artifact directly. ProvenanceStrip retains "Since last run" as the surface anchor (D44's coinage stands as the *route/surface name*; artifact-parity governs the *in-card title*). Dupe resolves naturally: strip says where you are ("Since last run"), card says what section you're in ("This Week"). Post-walk, revisit if the display h1 reads toyish in the leadership demo — Fable's "a title that looks like the data line it describes can't float" critique is noted, not dismissed.
+Rejected: (a) Honor D44's mono/caps register and break the dupe from the strip side instead — would let artifact-parity slip on the highest-impact visual element for a walk that's specifically an artifact-parity demo. (b) Split the difference (mono register with "This Week" copy, or display register with "Since last run" copy) — half-honors both decisions, satisfies neither, and leaves a hybrid that neither the artifact nor D44 endorses.
+Affects: `src/next/ThisWeekPage.jsx` h1 copy, `src/next/ThisWeekPage.css` `.tw-page-title`. Supersedes D44's typographic-treatment clause only; D44's coinage of "Since last run" as the surface-name anchor stands (now lives in ProvenanceStrip + `routeNames.js`, not the h1).

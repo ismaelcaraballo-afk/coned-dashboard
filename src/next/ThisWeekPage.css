@@ -8,6 +8,39 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+/* Entering state: workbench mounts underneath the login parting overlay
+   and fades up over the scene budget while the login collapses on top.
+   Cleared when LoginForm signals partingEnd. */
+.tw-workbench--entering {
+  animation: tw-workbench-enter var(--sc-motion-scene) var(--sc-motion-easing) forwards;
+}
+@keyframes tw-workbench-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Login overlay: takes the full page (fixed) during token-null OR parting,
+   sitting on top of the entering workbench so the collapse animation reads
+   against the workbench below. */
+.tw-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: var(--sc-canvas);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* During parting, the overlay's background is transparent so the workbench
+   fade-up is visible beneath the collapsing wave and form. */
+.tw-workbench--entering ~ .tw-login-overlay {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-workbench--entering { animation: none; opacity: 1; }
+}
+
 /* ── Topbar ─────────────────────────────────────────────────────────────── */
 
 .tw-topbar {
@@ -53,10 +86,12 @@
 }
 
 .tw-page-title {
-  font-size: 22px;
+  margin: 0;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  margin: 0;
+  color: var(--sc-bench-text);
 }
 
 .tw-anchors {
@@ -121,15 +156,149 @@
   text-underline-offset: 3px;
 }
 
+/* ── Page heading (post-topbar-retirement) ────────────────────────────────── */
+
+.tw-page-heading {
+  /* Inherits body-inner's max-width + horizontal padding — no extra
+     constraints here, or the heading indents further right than sections. */
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.tw-page-subtitle {
+  margin: 3px 0 0;
+  font-family: var(--sc-mono);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--sc-bench-muted);
+}
+
+.tw-command-row {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Command-row controls — compact, mono, matched to Fable's .cmd / .btn.
+   Height is padding-derived, not fixed, so text baselines set the size. */
+.tw-ask-btn,
+.tw-portfolio-btn,
+.tw-command-row .tw-compose-btn {
+  font-family: var(--sc-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  padding: 8px 14px;
+  border-radius: 3px;
+  border: 1px solid var(--sc-bench-line);
+  background: transparent;
+  color: var(--sc-bench-text);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--sc-motion-fast) var(--sc-motion-easing),
+    background var(--sc-motion-fast) var(--sc-motion-easing),
+    color var(--sc-motion-fast) var(--sc-motion-easing);
+}
+
+.tw-ask-btn {
+  flex: 1 1 auto;
+  min-width: 220px;
+  max-width: 380px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 12px;
+  color: var(--sc-bench-muted);
+  text-align: left;
+  letter-spacing: 0;
+}
+.tw-ask-btn:hover  { border-color: var(--sc-bench-text); color: var(--sc-bench-text); }
+.tw-ask-btn:focus  { outline: 2px solid var(--sc-bench-text); outline-offset: 2px; }
+
+.tw-ask-placeholder { letter-spacing: 0; }
+.tw-ask-kbd {
+  font-family: var(--sc-mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border: 1px solid var(--sc-bench-line);
+  border-radius: 2px;
+  color: var(--sc-bench-muted);
+  animation: tw-kbd-hint 2800ms ease-out 700ms 1 both;
+}
+
+/* Single soft glow on the ⌘K chip to signal the affordance on landing.
+   Delayed 700ms so the workbench fade-in settles first; runs once, then rests. */
+@keyframes tw-kbd-hint {
+  0%   { box-shadow: 0 0 0 0    rgba(232, 119, 34, 0);
+         border-color: var(--sc-bench-line); color: var(--sc-bench-muted); }
+  25%  { box-shadow: 0 0 0 3px  rgba(232, 119, 34, 0.22);
+         border-color: rgba(232, 119, 34, 0.70); color: #E87722; }
+  55%  { box-shadow: 0 0 0 6px  rgba(232, 119, 34, 0.10);
+         border-color: rgba(232, 119, 34, 0.45); color: #E87722; }
+  100% { box-shadow: 0 0 0 0    rgba(232, 119, 34, 0);
+         border-color: var(--sc-bench-line); color: var(--sc-bench-muted); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-ask-kbd { animation: none; }
+}
+
+.tw-portfolio-btn:hover  { border-color: var(--sc-bench-text); }
+.tw-portfolio-btn:focus  { outline: 2px solid var(--sc-bench-text); outline-offset: 2px; }
+
+.tw-command-row .tw-compose-btn {
+  background: #E87722;
+  border-color: #E87722;
+  color: #14100B;
+  font-weight: 600;
+}
+.tw-command-row .tw-compose-btn:hover {
+  background: color-mix(in srgb, #E87722 88%, #000);
+  color: #14100B;
+}
+.tw-command-row .tw-compose-btn:focus {
+  outline: 2px solid #E87722;
+  outline-offset: 2px;
+}
+
+.tw-heading-rule {
+  margin: 24px 0 0;
+  border: 0;
+  border-top: 1px solid var(--sc-bench-line);
+}
+
+/* Delta feed floating meta (section label was dropped — surface title
+   "Since last run" carries it). */
+.tw-feed-meta {
+  margin-bottom: 12px;
+  font-family: var(--sc-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--sc-bench-muted);
+  text-align: right;
+}
+
 /* ── Body ────────────────────────────────────────────────────────────────── */
 
 .tw-body-inner {
   max-width: 1040px;
-  margin: 0 auto;
-  padding: 40px 32px 80px;
+  margin: 56px auto 96px;
+  padding: 28px;
+  background: var(--sc-canvas);
+  border: 1px solid var(--sc-bench-line);
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 22px;
 }
 
 /* ── Section ─────────────────────────────────────────────────────────────── */
@@ -144,20 +313,22 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--sc-bench-muted);
   font-family: var(--sc-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--sc-bench-muted);
 }
 
 .tw-section-count {
   font-weight: 400;
-  font-size: 11px;
+  font-size: 9.5px;
+  text-transform: none;
+  letter-spacing: 0.03em;
 }
 
 /* ── Placeholder ─────────────────────────────────────────────────────────── */
@@ -183,16 +354,17 @@
 /* ── Delta feed ──────────────────────────────────────────────────────────── */
 
 .tw-feed {
-  background: var(--sc-canvas-raised);
+  background: transparent;
   border: 1px solid var(--sc-bench-line);
+  border-radius: 3px;
 }
 
 .tw-event {
   display: grid;
-  grid-template-columns: 80px 1fr auto;
+  grid-template-columns: 72px 1fr auto;
   align-items: baseline;
-  gap: 12px;
-  padding: 11px 18px;
+  gap: 16px;
+  padding: 11px 16px;
   border-bottom: 1px solid var(--sc-bench-line);
   font-size: 13px;
 }
@@ -201,8 +373,8 @@
 .tw-kind {
   font-family: var(--sc-mono);
   font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 600;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--sc-bench-muted);
   padding-top: 2px;
@@ -213,13 +385,15 @@
 
 .tw-body {
   color: var(--sc-bench-text);
-  line-height: 1.45;
+  line-height: 1.55;
 }
 .tw-body strong { font-weight: 600; }
 
 .tw-evidence {
+  font-family: var(--sc-mono);
   color: var(--sc-bench-muted);
-  font-size: 12px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .tw-action {
@@ -235,72 +409,43 @@
 /* ── Portfolio pulse ─────────────────────────────────────────────────────── */
 
 .tw-pulse {
+  padding: 14px 16px;
+  border: 1px solid var(--sc-bench-line);
+  border-radius: 3px;
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 22px;
   flex-wrap: wrap;
 }
 
-.tw-pulse-tile {
-  flex: 1;
-  min-width: 110px;
+.tw-pulse-bar {
+  flex: 1 1 260px;
+  min-width: 220px;
+  height: 8px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 20px;
-  background: var(--sc-canvas-raised);
-  border: 1px solid var(--sc-bench-line);
-  border-top-width: 3px;
+  border-radius: 2px;
+  overflow: hidden;
 }
+.tw-pulse-bar i { height: 100%; display: block; }
 
-.tw-pulse-tile--high { border-top-color: var(--sc-high, #ef4444); }
-.tw-pulse-tile--med  { border-top-color: #f97316; }
-.tw-pulse-tile--low  { border-top-color: var(--sc-low, #22c55e); }
-.tw-pulse-tile--unc  { border-top-color: var(--sc-bench-line); }
-
-.tw-pulse-val {
+.tw-pulse-stats {
   font-family: var(--sc-mono);
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-size: 10px;
+  color: var(--sc-bench-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.9;
+}
+.tw-pulse-stats b {
   color: var(--sc-bench-text);
+  font-weight: 500;
 }
 
-.tw-pulse-label {
+.tw-pulse-vint {
   font-family: var(--sc-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--sc-bench-muted);
+  font-size: 9px;
+  color: #5E6672;
+  margin-left: auto;
+  text-align: right;
+  line-height: 1.8;
 }
 
-/* ── Compose digest button (W6) ─────────────────────────────────────────── */
-
-.tw-compose-btn {
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 18px;
-  background: var(--sc-accent, #ea580c);
-  color: #fff;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  transition: background var(--sc-motion-fast) var(--sc-motion-easing);
-}
-.tw-compose-btn:hover  { background: color-mix(in srgb, var(--sc-accent, #ea580c) 88%, #000); }
-.tw-compose-btn:focus  { outline: 2px solid var(--sc-accent, #ea580c); outline-offset: 2px; }
-
-.tw-cmdk-hint {
-  align-self: center;
-  font-family: var(--sc-mono);
-  font-size: 11px;
-  color: var(--sc-bench-muted);
-  border: 1px solid var(--sc-bench-line);
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: var(--sc-canvas);
-}
