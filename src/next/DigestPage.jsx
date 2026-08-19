@@ -117,7 +117,7 @@ function DigestPageInner() {
 
       {!token && (
         <div className="dg-empty">
-          Sign in at <a href="/legacy">/legacy</a> first — this route reads that session.
+          Sign in at <a href="/this-week">/this-week</a> first — this route reads that session.
         </div>
       )}
 
@@ -126,7 +126,7 @@ function DigestPageInner() {
       {token && error && (
         <div className="dg-empty dg-empty--error">
           {error === "UNAUTHORIZED"
-            ? <>Session expired. <a href="/legacy">Log in again.</a></>
+            ? <>Session expired. <a href="/this-week">Log in again.</a></>
             : `Failed to load: ${error}`}
         </div>
       )}

@@ -122,8 +122,8 @@
   font-size: 9.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--sc-accent, #ea580c);
-  background: color-mix(in srgb, var(--sc-accent, #ea580c) 12%, transparent);
+  color: var(--sc-accent, #E87722);
+  background: color-mix(in srgb, var(--sc-accent, #E87722) 12%, transparent);
   padding: 2px 6px;
   border-radius: 3px;
   margin-right: 8px;
@@ -135,8 +135,8 @@
   align-items: center;
   gap: 4px;
   padding: 10px 12px;
-  background: color-mix(in srgb, var(--sc-accent, #ea580c) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--sc-accent, #ea580c) 30%, transparent);
+  background: color-mix(in srgb, var(--sc-accent, #E87722) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc-accent, #E87722) 30%, transparent);
   border-radius: 4px;
   cursor: pointer;
   font-size: 13.5px;
@@ -144,7 +144,7 @@
   font-family: inherit;
   text-align: left;
 }
-.cp-ai-action:hover { background: color-mix(in srgb, var(--sc-accent, #ea580c) 18%, transparent); }
+.cp-ai-action:hover { background: color-mix(in srgb, var(--sc-accent, #E87722) 18%, transparent); }
 
 .cp-ai-suggests {
   display: flex;

@@ -43,6 +43,17 @@ function formatMoney(n) {
   return `$${Math.round(n).toLocaleString()}`;
 }
 
+// W5 carry-over: how long since analyst first touched this row.
+// Buildings never touched render "—" — new to queue, no age anchor.
+function formatCarryAge(iso, nowMs = Date.now()) {
+  if (!iso) return "—";
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "—";
+  const days = Math.floor((nowMs - t) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "today";
+  return `${days}d`;
+}
+
 function formatRunStamp(iso) {
   if (!iso) return "run —";
   const d = new Date(iso);
@@ -78,7 +89,7 @@ function computeCoOccurrence(rows) {
  * and LL97 2030 penalty-magnitude bands — all derived from the currently filtered rowset.
  * Header states filter expression + row count + run stamp (W3 amended).
  */
-export default function CriticalQueue({ buildings, hasM6 = false, statusCounts = null, runDate = null }) {
+export default function CriticalQueue({ buildings, hasM6 = false, statusCounts = null, ageByBbl = {}, runDate = null }) {
   const [activeChip, setActiveChip] = useState("critical");
   const [view, setView] = useState("list");
 
@@ -159,6 +170,11 @@ export default function CriticalQueue({ buildings, hasM6 = false, statusCounts =
             Subtraction arithmetic and carry-over ages ship with M6.
           </p>
         )}
+        {hasM6 && (
+          <p className="cq-w5-note">
+            Age column is days since the row was first touched (W5 carry-over). New to queue reads “—”.
+          </p>
+        )}
 
         {view === "aggregate" && (
           <p className="cq-agg-stamp">
@@ -224,6 +240,7 @@ export default function CriticalQueue({ buildings, hasM6 = false, statusCounts =
                 <th>Address</th>
                 <th>Score</th>
                 <th>Trend</th>
+                {hasM6 && <th className="num">Age</th>}
                 <th className="num">Steam (M kBtu)</th>
                 <th className="num">LL97 '24</th>
               </tr>
@@ -247,6 +264,9 @@ export default function CriticalQueue({ buildings, hasM6 = false, statusCounts =
                     <td className="cq-trend" data-trend={b.decline_trend_label ?? ""}>
                       {b.decline_trend_label ?? "—"}
                     </td>
+                    {hasM6 && (
+                      <td className="num cq-age">{formatCarryAge(bbl ? ageByBbl[bbl] : null)}</td>
+                    )}
                     <td className="num">{formatMkBtu(b.steam)}</td>
                     <td className="num">{formatMoney(b.ll97_penalty_2024)}</td>
                   </tr>

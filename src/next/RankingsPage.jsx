@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useBuildings } from "../data/useBuildings.js";
-import { useStatusCounts } from "../data/useStatusCounts.js";
 import RankingsTable from "./RankingsTable.jsx";
-import CriticalQueue from "./CriticalQueue.jsx";
-import ErrorBoundary from "./ErrorBoundary.jsx";
 import "./RankingsPage.css";
 
 /**
@@ -20,7 +17,6 @@ export default function RankingsPage() {
   );
 
   const { buildings, loading, error }  = useBuildings(token);
-  const { counts: statusCounts }       = useStatusCounts(buildings, token);
 
   useEffect(() => {
     if (error === "UNAUTHORIZED") {
@@ -58,14 +54,7 @@ export default function RankingsPage() {
       )}
 
       {!loading && !error && buildings.length > 0 && (
-        <>
-          <RankingsTable buildings={buildings} limit={100} />
-          <div style={{ marginTop: "48px" }}>
-            <ErrorBoundary label="CriticalQueue" fallback={null}>
-              <CriticalQueue buildings={buildings} hasM6={true} statusCounts={statusCounts} />
-            </ErrorBoundary>
-          </div>
-        </>
+        <RankingsTable buildings={buildings} limit={100} />
       )}
     </div>
   );
