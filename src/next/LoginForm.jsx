@@ -125,6 +125,7 @@ export default function LoginForm({ onLogin, surfaceLede }) {
 
     setLoading(true);
     setError("");
+    let partingStarted = false;
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -156,6 +157,7 @@ export default function LoginForm({ onLogin, surfaceLede }) {
       if (prefersReducedMotion) {
         onLogin(data.token);
       } else {
+        partingStarted = true;
         setParting(true);
         setTimeout(() => onLogin(data.token), 420);
       }
@@ -164,7 +166,10 @@ export default function LoginForm({ onLogin, surfaceLede }) {
       inputRef.current?.focus();
       inputRef.current?.select();
     } finally {
-      setLoading(false);
+      // Hold loading through the 420ms parting animation on success so the
+      // button doesn't flash back to "Sign in →" mid-exit. Local flag —
+      // parting state is async and stale in this closure.
+      if (!partingStarted) setLoading(false);
     }
   }
 
