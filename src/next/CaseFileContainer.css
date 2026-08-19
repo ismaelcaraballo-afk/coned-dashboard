@@ -2,23 +2,21 @@
    Only .cfc-* classes; not global. */
 
 .cfc-page {
-  --cfc-paper: #F8F8F6;
-  --cfc-ink: #17181A;
-  --cfc-ink-muted: #6C6F75;
-  --cfc-hairline: #DDDDD8;
-  --cfc-warn-bg: #FFF4E5;
-  --cfc-warn-ink: #7A4A00;
-  --cfc-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --cfc-ink: var(--sc-bench-text);
+  --cfc-ink-muted: var(--sc-bench-muted);
+  --cfc-hairline: var(--sc-bench-line);
+  --cfc-warn-bg: rgba(232, 119, 34, 0.08);
+  --cfc-warn-ink: #E87722;
+  --cfc-mono: var(--sc-mono);
   --cfc-body: 'Inter', system-ui, sans-serif;
   --cfc-display: 'Space Grotesk', sans-serif;
 
-  background: var(--cfc-paper);
+  background: var(--sc-canvas);
   color: var(--cfc-ink);
   font-family: var(--cfc-body);
   min-height: 100vh;
-  padding: 56px 32px 96px;
-  max-width: 1120px;
-  margin: 0 auto;
+  width: 100%;
+  padding: 40px max(24px, calc((100% - 1040px) / 2)) 96px;
 }
 
 .cfc-header {
@@ -95,6 +93,56 @@
   font-family: var(--cfc-mono);
   font-size: 11.5px;
   margin-bottom: 16px;
+}
+
+/* Narrative body rendered inside CaseFileHeader's own narrative slot —
+   override .rp-* screen colors (they assume paper) with the workbench
+   palette so cited spans and superscripts stay legible on dark. */
+.cf-narr-body .rp-narr {
+  max-width: none;
+}
+.cf-narr-body .rp-narr,
+.cf-narr-body .rp-narr p {
+  color: var(--cf-bench-text, #E6E8EB);
+  font-family: var(--cf-body, 'Inter', system-ui, sans-serif);
+}
+.cf-narr-body .rp-cited {
+  border-bottom: 1px dotted var(--cf-bench-muted, #8A919C);
+  white-space: nowrap;
+}
+.cf-narr-body .rp-sup {
+  font-family: var(--cf-mono, 'IBM Plex Mono', monospace);
+  font-size: 8px;
+  color: var(--cf-bench-muted, #8A919C);
+  margin-left: 1px;
+}
+.cf-narr-body .rp-tierword {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* PDF actions row — right-aligned to the case-file card's right edge.
+   Sits between the header card and the StatusWriter. */
+.cfc-report-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+.cfc-report-actions .rp-actions {
+  margin: 0;
+}
+.cfc-report-actions .rp-action {
+  background: transparent;
+  color: var(--cfc-ink);
+  border-color: var(--cfc-ink);
+}
+.cfc-report-actions .rp-action:hover {
+  background: var(--cfc-ink);
+  color: var(--sc-canvas);
+}
+.cfc-report-actions .rp-action-flash {
+  color: var(--cfc-ink-muted);
 }
 
 .cfc-report-link {

@@ -54,15 +54,20 @@
   100% { stroke-dashoffset: 0; opacity: 0; }
 }
 
-/* Collapse flourish — on auth success, all noise collapses toward the
-   horizontal center as the workbench materializes underneath. */
-.lf-shell--parting .lf-cover {
-  opacity: 0;
-  transform: scaleY(0.04);
-  transform-origin: center center;
-  transition:
-    opacity 400ms var(--sc-motion-easing),
-    transform 400ms var(--sc-motion-easing);
+/* Resting baseline — the amplitude-zero horizon at CENTER_Y.
+   Persistent, quiet stroke. The composition sits on this line at rest and
+   returns to it during parting. */
+.lf-baseline {
+  opacity: 0.85;
+  transition: opacity var(--sc-motion-scene) var(--sc-motion-easing);
+}
+
+/* Collapse flourish — pulses fade out at parting, revealing only the
+   baseline horizon. Amplitude drives the collapse (via pulse dissolution),
+   not a scaleY transform on the whole layer. */
+.lf-shell--parting .lf-cover-line {
+  opacity: 0 !important;
+  transition: opacity var(--sc-motion-scene) var(--sc-motion-easing);
 }
 
 /* ── Form ──────────────────────────────────────────────────────────────── */
@@ -86,23 +91,23 @@
   pointer-events: none;
 }
 
-.lf-lede {
+.lf-eyebrow {
   margin: 0;
-  font-size: 12.5px;
-  line-height: 1.6;
+  font-family: var(--sc-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--sc-bench-muted);
   text-align: center;
 }
 
+/* Rules only — no card, no border, no background, no blur. The form
+   inhabits the wave's envelope notch; legibility comes from the notch,
+   not from a widget floating above the composition. */
 .lf-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 22px 24px;
-  background: color-mix(in srgb, var(--sc-canvas) 78%, transparent);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid var(--sc-bench-line);
 }
 
 .lf-label {
@@ -178,6 +183,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .lf-cover-line { animation: none; stroke-dashoffset: 0; opacity: 0.3; }
+  .lf-baseline { transition: none; }
+  .lf-shell--parting .lf-cover-line { transition: none; opacity: 0 !important; }
   .lf-wrap, .lf-shell--parting .lf-wrap {
     transition: none;
     transform: none;

@@ -5,7 +5,10 @@ import CaseFileHeader from "./CaseFileHeader.jsx";
 import StatusWriter from "./StatusWriter.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import { buildCaseFileProps, computePercentileMap, normalizeBbl } from "./caseFileAdapter.jsx";
+import { toReportProps } from "./reportAdapter.jsx";
+import ReportActions from "./ReportActions.jsx";
 import "./CaseFileContainer.css";
+import "./ReportPage.css";
 
 /**
  * M4 container harness — /case-file/:bbl.
@@ -74,29 +77,34 @@ export default function CaseFileContainer() {
     [buildings]
   );
 
+  const reportProps = useMemo(() => {
+    if (!building || !pctMap) return null;
+    return toReportProps(building, modelMeta, pctMap);
+  }, [building, pctMap, modelMeta]);
+
   const props = useMemo(() => {
     if (!building || !pctMap) return null;
-    return buildCaseFileProps({ building, modelMeta, currentStatus, pctMap });
-  }, [building, pctMap, modelMeta, currentStatus]);
+    const base = buildCaseFileProps({ building, modelMeta, currentStatus, pctMap });
+    if (!reportProps) return base;
+    return {
+      ...base,
+      narrative: {
+        source: "Reasoning report auto-draft",
+        drafted: reportProps.meta.generated,
+        status: "Ready for review",
+        body: (
+          <div className="rp-narr">
+            {reportProps.narrative.map((slot) => (
+              <p key={slot.key}>{slot.html}</p>
+            ))}
+          </div>
+        ),
+      },
+    };
+  }, [building, pctMap, modelMeta, currentStatus, reportProps]);
 
   return (
-    <div className="cfc-page">
-      <header className="cfc-header">
-        <div className="cfc-meta">
-          <span>ConEd Steam Attrition · M4</span>
-          <span>Case-file container · in situ</span>
-          <span>Preview build</span>
-        </div>
-        <h1>Case file</h1>
-        <p className="cfc-lede">
-          Live wiring of the Spec 2 atom against building data,{" "}
-          <code>/api/model_meta</code> (provenance + AUC line per §7 rule 8),
-          and <code>/api/buildings/:bbl/status</code>. Narrative slot ships
-          as the designed empty frame; drafting arrives with the report
-          milestone (M5).
-        </p>
-      </header>
-
+    <div className="cfc-page sc-scope">
       {loading && <div className="cfc-empty">Loading buildings…</div>}
 
       {error && error !== "UNAUTHORIZED" && (
@@ -126,11 +134,8 @@ export default function CaseFileContainer() {
               model_meta fetch failed: {modelMetaErr} — provenance line shows fallback copy.
             </div>
           )}
-          {statusErr && (
-            <div className="cfc-warn">
-              status fetch failed: {statusErr} — defaulting to Unreviewed.
-            </div>
-          )}
+          {/* status read failures fall back to Unreviewed silently — no
+              banner. Write failures still surface via StatusWriter. */}
           <ErrorBoundary
             label={`CaseFileHeader:${urlBbl}`}
             fallback={
@@ -143,12 +148,25 @@ export default function CaseFileContainer() {
           </ErrorBoundary>
           <StatusWriter
             bbl={urlBbl}
-            currentStatus={currentStatus}
+            currentStatus={currentStatus?.status ?? null}
             token={token}
-            onSaved={(newStatus) => setCurrentStatus(newStatus)}
+            onSaved={(newStatus) => setCurrentStatus({
+              ...(currentStatus ?? {}),
+              status: newStatus,
+              created_at: new Date().toISOString(),
+            })}
           />
+          {reportProps && (
+            <div className="cfc-report-actions">
+              <ReportActions
+                bbl={reportProps.identity.bbl}
+                address={reportProps.identity.address}
+                reportId={reportProps.meta.reportId}
+              />
+            </div>
+          )}
           <div className="cfc-report-link">
-            <a href={`/report/${urlBbl}`}>See the reasoning →</a>
+            <a href={`/report/${urlBbl}`}>See the full reasoning →</a>
           </div>
         </>
       )}

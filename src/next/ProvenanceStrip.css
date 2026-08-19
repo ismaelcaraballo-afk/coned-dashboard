@@ -1,0 +1,98 @@
+/* ProvenanceStrip — global chrome, ~32px, one line, mono.
+   Inherits .sc-scope tokens. Owns WaveDivider (--sc-divider-y is the
+   strip's bottom edge; other surfaces read this to anchor motion). */
+
+.sc-scope {
+  /* Divider anchor — the y-position at which the WaveDivider sits.
+     Login parting's horizon-line targets this via CSS custom prop.
+     Value is height of ps-row + a hair for the 6px divider band. */
+  --sc-divider-y: 34px;
+  --sc-divider-stroke: var(--sc-bench-line);
+}
+
+.ps-strip {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--sc-canvas);
+  color: var(--sc-bench-text);
+  font-family: var(--sc-mono);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.ps-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  height: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.ps-mark {
+  color: var(--sc-bench-text);
+  font-weight: 500;
+}
+
+.ps-sep {
+  color: var(--sc-bench-muted);
+}
+
+.ps-surface {
+  color: var(--sc-bench-muted);
+}
+
+.ps-spacer {
+  flex: 1 1 auto;
+}
+
+.ps-run,
+.ps-session {
+  color: var(--sc-bench-muted);
+  white-space: nowrap;
+}
+
+.ps-chip {
+  padding: 2px 6px;
+  border: 1px solid var(--sc-bench-line);
+  color: var(--sc-bench-muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.ps-cmdk,
+.ps-signout {
+  background: transparent;
+  color: var(--sc-bench-muted);
+  border: 1px solid var(--sc-bench-line);
+  padding: 3px 8px;
+  font-family: var(--sc-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition:
+    color var(--sc-motion-fast) var(--sc-motion-easing),
+    border-color var(--sc-motion-fast) var(--sc-motion-easing);
+}
+.ps-cmdk:hover,
+.ps-signout:hover {
+  color: var(--sc-bench-text);
+  border-color: var(--sc-bench-text);
+}
+
+/* WaveDivider sits directly below the row. */
+.wd-svg {
+  display: block;
+  width: 100%;
+  height: 6px;
+}
+
+/* Print: the strip is suppressed on the report page (its printed
+   letterhead already carries provenance). Divider not needed on paper. */
+@media print {
+  .ps-strip { display: none; }
+}

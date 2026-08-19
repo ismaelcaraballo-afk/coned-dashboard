@@ -7,10 +7,8 @@ import { isCritical } from "../data/criticalFilter.js";
 import CriticalQueue from "./CriticalQueue.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import LoginForm from "./LoginForm.jsx";
+import { setToken as writeToken } from "./authToken.js";
 import "./ThisWeekPage.css";
-
-const SURFACE_LEDE =
-  "This Week is the weekly triage surface for the ConEd steam attrition workflow. Sign in to see since-last-run events, your Critical queue, and portfolio pulse.";
 
 // ── Portfolio pulse aggregation ───────────────────────────────────────────
 
@@ -39,6 +37,21 @@ function fmtRunDate(iso) {
   });
 }
 
+// Monday of the week containing `iso` (UTC), formatted as "Mon Jul 6, 2026".
+function fmtWeekOf(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  // getUTCDay: Sun=0, Mon=1, ...
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+  return monday.toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 // ── Event kind display ────────────────────────────────────────────────────
 
 const KIND_META = {
@@ -57,9 +70,9 @@ function EventRow({ event }) {
     <div className="tw-event">
       <span className={`tw-kind ${meta.cls}`}>{meta.label}</span>
       <span className="tw-body">
-        <strong>{event.subject}</strong>
-        {" — "}
-        {event.verb}
+        <span className="tw-subject">{event.subject}</span>
+        {" "}
+        <span className="tw-verb">{event.verb}</span>
         {event.evidence && (
           <span className="tw-evidence"> · {event.evidence}</span>
         )}
@@ -77,6 +90,10 @@ export default function ThisWeekPage() {
   const [token, setToken] = useState(
     () => sessionStorage.getItem("coned_token") || null
   );
+  // While parting, LoginForm stays mounted (overlay) and the workbench
+  // renders underneath with .tw-page--entering so opacity fades up during
+  // the same window the login collapses. Cleared when LoginForm finishes.
+  const [parting, setParting] = useState(false);
 
   // sessionStorage is per-tab — storage event only fires for localStorage (cross-tab).
   // Token is read correctly on mount; re-login navigates to /legacy which sets it there.
@@ -88,7 +105,7 @@ export default function ThisWeekPage() {
   // Expired session → clear token, re-render into LoginForm in place.
   useEffect(() => {
     if (bldgError === "UNAUTHORIZED") {
-      sessionStorage.removeItem("coned_token");
+      writeToken(null);
       setToken(null);
     }
   }, [bldgError]);
@@ -108,68 +125,60 @@ export default function ThisWeekPage() {
 
   return (
     <div className="sc-scope tw-page">
-      {/* ── Topbar ─────────────────────────────────────────────────── */}
+      {/* Workbench (topbar + body). During parting, wrapped in .tw-workbench--entering
+          so it fades up beneath the LoginForm overlay's collapse. */}
       {token && (
-      <header className="tw-topbar">
-        {/* Harmonic divider — quiet echo of the login cover. */}
-        <svg
-          className="tw-topbar-wave"
-          viewBox="0 0 1200 6"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M 0 3 Q 60 1, 120 3 T 240 3 T 360 3 T 480 3 T 600 3 T 720 3 T 840 3 T 960 3 T 1080 3 T 1200 3"
-            fill="none"
-            stroke="var(--sc-bench-line)"
-            strokeWidth="1"
-          />
-        </svg>
-        <div className="tw-topbar-inner">
-          <div className="tw-topbar-left">
-            <span className="tw-eyebrow">ConEd Steam Attrition · M9</span>
-            <h1 className="tw-page-title">This Week</h1>
+      <div className={`tw-workbench${parting ? " tw-workbench--entering" : ""}`}>
+      {/* Local topbar retired 2026-08-19 — surface identity + run stamp
+          + ⌘K + sign out are all in the global ProvenanceStrip (D34/D37).
+          Page opens on its title + Compose action as the first block. */}
+      <div className="tw-body-inner">
+        <div className="tw-page-heading">
+          <h1 className="tw-page-title">This Week</h1>
+          <p className="tw-page-subtitle">
+            pipeline run {fmtRunDate(runDate)}
+          </p>
+          <div className="tw-command-row">
+            <button
+              type="button"
+              className="tw-ask-btn"
+              onClick={() => {
+                window.dispatchEvent(new KeyboardEvent("keydown", {
+                  key: "k", metaKey: true, bubbles: true,
+                }));
+              }}
+              aria-label="Open command palette"
+            >
+              <span className="tw-ask-placeholder">Ask or filter…</span>
+              <span className="tw-ask-kbd">⌘K</span>
+            </button>
+            <Link to="/rankings" className="tw-portfolio-btn">
+              Portfolio
+            </Link>
+            <Link to="/digest" className="tw-compose-btn">
+              Compose weekly digest
+            </Link>
           </div>
-          <div className="tw-anchors">
-            <div className="tw-anchor">
-              <span className="tw-anchor-label">Pipeline run</span>
-              <span className="tw-anchor-val">{fmtRunDate(runDate)}</span>
-            </div>
-            {token && (
-              <>
-                <kbd className="tw-cmdk-hint" title="Command palette">⌘K</kbd>
-                <Link to="/digest" className="tw-compose-btn">
-                  Compose weekly digest
-                </Link>
-              </>
-            )}
-          </div>
+          <hr className="tw-heading-rule" />
         </div>
-      </header>
-      )}
-
-      {!token && (
-        <LoginForm onLogin={setToken} surfaceLede={SURFACE_LEDE} />
-      )}
-
-      {token && (
-        <div className="tw-body-inner">
-          {/* ── Delta feed ─────────────────────────────────────────── */}
+          {/* ── Delta feed ───────────────────────────────────────────
+              Section label dropped — surface title carries it (Fable answer,
+              2026-08-19 landing-framing). Right-stat floats as a small meta
+              line above the feed. */}
           <section className="tw-section">
-            <div className="tw-section-label">
-              <span>Since last run</span>
-              {!evtLoading && eventsData && (
-                <span className="tw-section-count">
-                  {feedEvents.length} event{feedEvents.length !== 1 ? "s" : ""} · {eventsData.events?.find(e => e.kind === "DATA")?.subject ?? "—"} scanned
-                </span>
-              )}
-            </div>
+            {!evtLoading && eventsData && (
+              <div className="tw-feed-meta">
+                {feedEvents.length} event{feedEvents.length !== 1 ? "s" : ""} · 1 run · {buildings.length.toLocaleString()} scanned
+              </div>
+            )}
 
             {evtLoading && <div className="tw-placeholder">Loading events…</div>}
 
             {!evtLoading && (firstRun || feedEvents.length === 0) && (
               <div className="tw-placeholder">
-                Event feed begins with the first diffed pipeline run. Nothing to show yet.
+                Run {fmtRunDate(runDate)} · no changes since the previous run.
+                <br />
+                Queue and pulse below reflect the current run. First diffed run populates this feed.
               </div>
             )}
 
@@ -187,7 +196,7 @@ export default function ThisWeekPage() {
           {/* ── Queue (M8) ─────────────────────────────────────────── */}
           <section className="tw-section">
             <div className="tw-section-label">
-              <span>Your queue this week</span>
+              <span>Your queue</span>
               <span className="tw-section-count">sorted by rank within Critical, then High</span>
             </div>
 
@@ -199,7 +208,7 @@ export default function ThisWeekPage() {
             )}
             {!bldgLoading && !bldgError && (
               <ErrorBoundary label="CriticalQueue" fallback={<div className="tw-placeholder tw-placeholder--err">Queue failed to render.</div>}>
-                <CriticalQueue buildings={buildings} hasM6={true} statusCounts={statusCounts} runDate={runDate} />
+                <CriticalQueue buildings={buildings} hasM6={true} statusCounts={statusCounts} runDate={runDate} limit={5} />
               </ErrorBoundary>
             )}
           </section>
@@ -213,28 +222,51 @@ export default function ThisWeekPage() {
 
             {bldgLoading
               ? <div className="tw-placeholder">Loading…</div>
-              : (
-                <div className="tw-pulse">
-                  <PulseTile label="Critical" value={pulse.critical} tier="high" />
-                  <PulseTile label="High"     value={pulse.high}     tier="high" />
-                  <PulseTile label="Medium"   value={pulse.medium}   tier="med" />
-                  <PulseTile label="Low"      value={pulse.low}      tier="low" />
-                  <PulseTile label="Uncertain" value={pulse.uncertain} tier="unc" />
-                </div>
-              )
+              : <PulseBar pulse={pulse} runDate={runDate} />
             }
           </section>
+        </div>
+      </div>
+      )}
+
+      {(!token || parting) && (
+        <div className="tw-login-overlay">
+          <LoginForm
+            onLogin={(tok) => { setParting(true); setToken(tok); }}
+            onPartingEnd={() => setParting(false)}
+          />
         </div>
       )}
     </div>
   );
 }
 
-function PulseTile({ label, value, tier }) {
+function PulseBar({ pulse, runDate }) {
+  const { critical, high, medium, low, uncertain, total } = pulse;
+  // Critical is a subset of the tier space computed differently; the bar
+  // partitions the diagnostic tiers only, so critical folds into high visually.
+  const barTotal = high + medium + low + uncertain;
+  const pct = (n) => barTotal > 0 ? (n / barTotal) * 100 : 0;
   return (
-    <div className={`tw-pulse-tile tw-pulse-tile--${tier}`}>
-      <span className="tw-pulse-val">{value.toLocaleString()}</span>
-      <span className="tw-pulse-label">{label}</span>
+    <div className="tw-pulse">
+      <div className="tw-pulse-bar">
+        <i style={{ width: `${pct(high)}%`,      background: "#E05545" }} />
+        <i style={{ width: `${pct(medium)}%`,    background: "#D19A3D" }} />
+        <i style={{ width: `${pct(low)}%`,       background: "#4C8A68" }} />
+        <i style={{ width: `${pct(uncertain)}%`, background: "#7A828D" }} />
+      </div>
+      <div className="tw-pulse-stats">
+        High <b>{high.toLocaleString()}</b>
+        {" · "}Med <b>{medium.toLocaleString()}</b>
+        {" · "}Low <b>{low.toLocaleString()}</b>
+        {" · "}Uncertain <b>{uncertain.toLocaleString()}</b>
+        <br />
+        Critical <b>{critical.toLocaleString()}</b>
+        {" · "}<b>{total.toLocaleString()}</b> buildings scanned
+      </div>
+      <div className="tw-pulse-vint">
+        Pipeline {fmtRunDate(runDate)}<br />XGB v1 · UNVAL
+      </div>
     </div>
   );
 }

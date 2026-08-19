@@ -33,12 +33,9 @@ export default function RankingsPage() {
 
   return (
     <div className="sc-scope rankings-page">
+      {/* Preview-scaffold header retired 2026-08-19 — surface identity
+          comes from the global ProvenanceStrip (D37). */}
       <header className="rankings-header">
-        <div className="rankings-meta">
-          <span>ConEd Steam Attrition · M3</span>
-          <span>Rankings container · atom in situ</span>
-          <span>Preview build</span>
-        </div>
         <h1>Rankings</h1>
         <p className="rankings-lede">
           Sorted by <code>ml_risk</code> (percentile, desc). Score cell

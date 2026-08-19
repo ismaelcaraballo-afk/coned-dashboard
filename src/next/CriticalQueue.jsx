@@ -78,9 +78,11 @@ function computeCoOccurrence(rows) {
  * and LL97 2030 penalty-magnitude bands — all derived from the currently filtered rowset.
  * Header states filter expression + row count + run stamp (W3 amended).
  */
-export default function CriticalQueue({ buildings, hasM6 = false, statusCounts = null, runDate = null }) {
+export default function CriticalQueue({ buildings, hasM6 = false, statusCounts = null, runDate = null, limit = null }) {
   const [activeChip, setActiveChip] = useState("critical");
   const [view, setView] = useState("list");
+  const [expanded, setExpanded] = useState(false);
+  const effectiveLimit = limit != null && !expanded ? limit : null;
 
   const pctByKey = useMemo(() => computePercentileMap(buildings), [buildings]);
 
@@ -217,6 +219,7 @@ export default function CriticalQueue({ buildings, hasM6 = false, statusCounts =
       ) : rows.length === 0 ? (
         <div className="cq-empty">No buildings match this filter.</div>
       ) : (
+        <>
         <div className="cq-bench">
           <table className="cq-table">
             <thead>
@@ -225,13 +228,13 @@ export default function CriticalQueue({ buildings, hasM6 = false, statusCounts =
                 <th>Score</th>
                 <th>Trend</th>
                 <th className="num">Steam (M kBtu)</th>
-                <th className="num">LL97 '24</th>
+                <th className="num">LL97 '30</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((b) => {
+              {(effectiveLimit ? rows.slice(0, effectiveLimit) : rows).map((b, i) => {
                 const bbl  = normalizeBbl(b.bbl);
-                const cell = toScoreCellProps(b, pctByKey);
+                const cell = toScoreCellProps(b, pctByKey, i + 1);
                 return (
                   <tr key={bbl ?? b.address} className={isCritical(b) ? "cq-row--critical" : ""}>
                     <td className="cq-addr">
@@ -248,13 +251,24 @@ export default function CriticalQueue({ buildings, hasM6 = false, statusCounts =
                       {b.decline_trend_label ?? "—"}
                     </td>
                     <td className="num">{formatMkBtu(b.steam)}</td>
-                    <td className="num">{formatMoney(b.ll97_penalty_2024)}</td>
+                    <td className="num">{formatMoney(b.ll97_penalty_2030)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+        {limit && rows.length > limit && (
+          <button
+            type="button"
+            className="cq-see-all"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+          >
+            {expanded ? "Collapse" : `See all ${rows.length}`}
+          </button>
+        )}
+        </>
       )}
     </div>
   );

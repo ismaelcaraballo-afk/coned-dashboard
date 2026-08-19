@@ -16,9 +16,12 @@
   --sc-uncertain: #7A828D;
   --sc-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Motion tokens — one easing, two durations, everywhere. */
-  --sc-motion-fast: 120ms;
-  --sc-motion-med:  180ms;
+  /* Motion tokens — one easing, three durations. Fast/med for interaction
+     feedback (hover, focus, state); scene for cross-surface transitions
+     (login→workbench). Scene budget: ~550ms end-to-end, single leg 320ms. */
+  --sc-motion-fast:  120ms;
+  --sc-motion-med:   180ms;
+  --sc-motion-scene: 320ms;
   --sc-motion-easing: cubic-bezier(0.2, 0, 0, 1);
 }
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { setToken as writeToken } from "./authToken.js";
 import "./LoginForm.css";
 
 /**
@@ -35,6 +36,22 @@ const HARMONICS = [
   { amp: 0.14, freq: 11.09, phase: 1.98  },
 ];
 
+// Envelope notch — a smooth well over the form's x-range where the wave
+// tapers to zero amplitude, so the form's baseline sits inside a flat
+// segment of the wave rather than on top of it. NOTCH_CENTER and NOTCH_HALF
+// are in HARMONIC_W units; SVG preserveAspectRatio=none stretches the
+// viewBox to the viewport, so the notch centers under the (centered) form.
+const NOTCH_CENTER = 0.5;   // fraction of HARMONIC_W
+const NOTCH_HALF   = 0.16;  // fraction of HARMONIC_W (form ~420px within ~1600 viewport ≈ 26%)
+
+function notchMultiplier(t) {
+  // Smooth 0-in-notch, 1-outside using raised-cosine falloff.
+  const d = Math.abs(t - NOTCH_CENTER);
+  if (d >= NOTCH_HALF) return 1;
+  const x = d / NOTCH_HALF;                    // 0 at center → 1 at edge
+  return 0.5 - 0.5 * Math.cos(Math.PI * x);    // 0 at center → 1 at edge, smooth
+}
+
 function harmonicPath(phaseShift = 0) {
   const totalAmp = HARMONICS.reduce((s, h) => s + h.amp, 0);
   const scaleY = (CENTER_Y * 0.82) / totalAmp;
@@ -45,7 +62,8 @@ function harmonicPath(phaseShift = 0) {
     for (const h of HARMONICS) {
       y += h.amp * Math.sin(h.freq * t * Math.PI * 2 + h.phase + phaseShift);
     }
-    y *= Math.sin(t * Math.PI); // edge taper
+    y *= Math.sin(t * Math.PI);       // edge taper (both ends)
+    y *= notchMultiplier(t);          // form-x-range taper (center notch)
     pts.push([t * HARMONIC_W, CENTER_Y - y * scaleY]);
   }
   let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
@@ -54,6 +72,13 @@ function harmonicPath(phaseShift = 0) {
   }
   return d;
 }
+
+// Persistent horizontal baseline at CENTER_Y — the amplitude-zero flat line
+// that exists at rest (before any keystroke) and remains after pulses
+// collapse. Typing excites the composition on top of this line; parting
+// dissolves the pulses and leaves this line as the horizon that hands off
+// to the topbar divider.
+const RESTING_LINE_D = `M 0 ${CENTER_Y} L ${HARMONIC_W} ${CENTER_Y}`;
 
 // Three overlapping lines per pulse (primary + 2 ghosts). Each keystroke
 // triggers one full draw-in → hold → fade-out cycle. Durations kept close
@@ -77,7 +102,11 @@ const PULSE_LIFETIME_MS = 2200;
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export default function LoginForm({ onLogin, surfaceLede }) {
+// Total parting time on screen: draw start → workbench visible.
+// Matches the CSS 400ms transitions with a small tail for safety.
+const PARTING_DURATION_MS = 520;
+
+export default function LoginForm({ onLogin, onPartingEnd }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -152,12 +181,23 @@ export default function LoginForm({ onLogin, surfaceLede }) {
         throw new Error(data.error || "Authentication failed.");
       }
 
-      sessionStorage.setItem("coned_token", data.token);
+      // writeToken() sets sessionStorage AND dispatches coned-auth-change
+      // so ProvenanceStrip re-renders even though it doesn't share state
+      // with the surface that owns the login form.
+      writeToken(data.token);
       if (prefersReducedMotion) {
         onLogin(data.token);
       } else {
+        // Freeze the composition before parting: live pulses animating during
+        // the collapse cause main-thread contention that reads as a stepped
+        // form fade (Fable diagnostic, 2026-08-19).
+        setPulses([]);
         setParting(true);
-        setTimeout(() => onLogin(data.token), 420);
+        // Fire onLogin at parting start so the workbench mounts underneath
+        // (opacity 0, --entering) and its data fetches begin during the
+        // parting animation — first paint isn't waiting on a fetch after.
+        onLogin(data.token);
+        setTimeout(() => onPartingEnd?.(), PARTING_DURATION_MS);
       }
     } catch (err) {
       setError(err.message || "Authentication failed.");
@@ -178,6 +218,17 @@ export default function LoginForm({ onLogin, surfaceLede }) {
           preserveAspectRatio="none"
           role="presentation"
         >
+          {/* Resting baseline — always present. Amplitude-zero flat line
+              the composition sits on. Typing excites this; parting leaves
+              it as the horizon (Phase 3: hands off to topbar divider). */}
+          <path
+            className="lf-baseline"
+            d={RESTING_LINE_D}
+            fill="none"
+            stroke="var(--sc-bench-line)"
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+          />
           {pulses.map((pulse) => {
             const variation = PULSE_VARIATIONS[pulse.id % PULSE_VARIATIONS.length];
             return variation.map((line, i) => (
@@ -198,9 +249,11 @@ export default function LoginForm({ onLogin, surfaceLede }) {
         </svg>
       </div>
 
-      {/* Form — simple, no card, sits above the wave */}
+      {/* Form — rules only. No card, no border, no blur. Sits inside the
+          envelope notch so the field baseline continues the wave's flat
+          center segment. */}
       <div className="lf-wrap">
-        {surfaceLede && <p className="lf-lede">{surfaceLede}</p>}
+        <p className="lf-eyebrow">ConEd Steam Attrition · This Week</p>
 
         <form className="lf-form" onSubmit={handleSubmit} noValidate>
           <label className="lf-label" htmlFor="lf-password">Password</label>
@@ -227,9 +280,8 @@ export default function LoginForm({ onLogin, surfaceLede }) {
 
           {error && <div className="lf-error" role="alert">{error}</div>}
 
-          <p className="lf-helper">
-            Shared password. Sessions expire hourly.
-          </p>
+          {/* "Sessions expire hourly" moves to the ProvenanceStrip in Phase 3. */}
+          <p className="lf-helper">Shared team password</p>
         </form>
       </div>
     </div>

@@ -2,8 +2,8 @@
    Inherits .sc-scope tokens (ScoreCell.css must be loaded by a parent). */
 
 .cq-root {
-  max-width: 1040px;
-  margin: 0 auto;
+  /* Width and centering inherited from parent container (body-inner or
+     rankings-page). Don't self-constrain — creates competing gutters. */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -11,10 +11,8 @@
 
 .cq-header {
   margin-bottom: 0;
-  padding: 24px 28px 0;
-  background: var(--sc-canvas-raised);
-  border-top-left-radius: 2px;
-  border-top-right-radius: 2px;
+  padding: 0;
+  background: transparent;
 }
 
 .cq-title-row {
@@ -52,15 +50,17 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 5px 10px;
   border: 1px solid var(--sc-bench-line);
-  background: var(--sc-canvas);
+  background: transparent;
   color: var(--sc-bench-muted);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 12px;
+  font-family: var(--sc-mono);
+  font-size: 10px;
   font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: border-color 0.1s, color 0.1s, background 0.1s;
   line-height: 1;
 }
@@ -71,7 +71,7 @@
 }
 
 .cq-chip--active {
-  border-color: var(--sc-high, #ef4444);
+  border-color: var(--sc-bench-muted);
   color: var(--sc-bench-text);
   background: var(--sc-canvas-raised);
 }
@@ -96,13 +96,16 @@
 /* ── Table shell ─────────────────────────────────────────────────────────── */
 
 .cq-bench {
-  background: var(--sc-canvas-raised);
+  background: transparent;
+  border: 1px solid var(--sc-bench-line);
+  border-radius: 3px;
   overflow-x: auto;
-  padding: 0 28px 28px;
 }
 
 .cq-empty {
-  background: var(--sc-canvas-raised);
+  background: transparent;
+  border: 1px solid var(--sc-bench-line);
+  border-radius: 3px;
   padding: 40px 28px;
   color: var(--sc-bench-muted);
   font-size: 14px;
@@ -123,13 +126,13 @@
   text-transform: uppercase;
   color: var(--sc-bench-muted);
   text-align: left;
-  padding: 0 14px 10px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--sc-bench-line);
 }
 .cq-table th.num { text-align: right; }
 
 .cq-table td {
-  padding: 7px 14px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--sc-bench-line);
   vertical-align: middle;
 }
@@ -139,6 +142,31 @@
   background: transparent;
   padding-top: 4px;
   padding-bottom: 4px;
+}
+
+/* ── See-all trailer (landing use — cq-root passes limit prop) ─────────── */
+
+.cq-see-all {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 0 0 1px;
+  font-family: var(--sc-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sc-bench-muted);
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted var(--sc-bench-muted);
+  cursor: pointer;
+}
+.cq-see-all:hover {
+  color: var(--sc-bench-text);
+  border-bottom-color: var(--sc-bench-text);
+}
+.cq-see-all:focus-visible {
+  outline: 2px solid var(--sc-bench-text);
+  outline-offset: 3px;
 }
 
 /* ── Row states ──────────────────────────────────────────────────────────── */
@@ -187,9 +215,10 @@
 
 .cq-m6-math {
   font-family: var(--sc-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--sc-bench-muted);
-  margin: 8px 0 0;
+  margin: 0 0 12px;
+  font-variant-numeric: tabular-nums;
 }
 .cq-m6-total    { color: var(--sc-high, #ef4444); font-weight: 600; }
 .cq-m6-toreview { color: var(--sc-bench-text);    font-weight: 600; }
